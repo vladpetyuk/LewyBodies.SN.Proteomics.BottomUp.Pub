@@ -1,0 +1,7 @@
+\documentclass{article}
+\usepackage{pdfpages}
+%\VignettePackage{LewyBodies.SN.Proteomics.BottomUp.Pub}
+%\VignetteIndexEntry{Study Design}
+\begin{document}
+\includepdf[pages=-, fitpaper=true]{study_design.pdf}
+\end{document}

@@ -1,0 +1,22 @@
+\contentsline {section}{\numberline {1}Objective}{2}{section.1}
+\contentsline {section}{\numberline {2}PCA. Supplementary Figure 3}{2}{section.2}
+\contentsline {section}{\numberline {3}Statistical significance analysis}{3}{section.3}
+\contentsline {subsection}{\numberline {3.1}Mixed effects model. Figure 3}{3}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}Top 10 most significant proteins proteins. Figure 4}{4}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Top differential proteins for six contrasts. Table 2}{5}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}Full results of contrasts analysis. Supplementary Table 4}{5}{subsection.3.4}
+\contentsline {section}{\numberline {4}GO Term Enrichment}{6}{section.4}
+\contentsline {subsection}{\numberline {4.1}Top terms. Table 3}{6}{subsection.4.1}
+\contentsline {subsection}{\numberline {4.2}Complete results. Supplementary Table 5}{7}{subsection.4.2}
+\contentsline {subsection}{\numberline {4.3}Non-redundant set of GO terms}{7}{subsection.4.3}
+\contentsline {subsubsection}{\numberline {4.3.1}Barplot summary of non-redundant terms. Figure 5}{8}{subsubsection.4.3.1}
+\contentsline {subsubsection}{\numberline {4.3.2}Heatmaps corresponding to individual terms. Figure 6}{9}{subsubsection.4.3.2}
+\contentsline {section}{\numberline {5}Assessment of the cell type level changes}{11}{section.5}
+\contentsline {subsection}{\numberline {5.1}Significance analysis}{11}{subsection.5.1}
+\contentsline {subsection}{\numberline {5.2}Barplot of cell type contributions. Figure 7}{11}{subsection.5.2}
+\contentsline {subsection}{\numberline {5.3}Heatmap of protein markers of endothelial cells. Figure 8}{12}{subsection.5.3}
+\contentsline {section}{\numberline {6}Primary factors affecting $\alpha $-synuclein abundance}{13}{section.6}
+\contentsline {subsection}{\numberline {6.1}Statisical model of $\alpha $-synuclein abundance}{13}{subsection.6.1}
+\contentsline {section}{\numberline {7}Causal Network Analysis}{13}{section.7}
+\contentsline {subsection}{\numberline {7.1}Causal Network. Figure 9}{14}{subsection.7.1}
+\contentsline {section}{\numberline {8}Session information}{15}{section.8}

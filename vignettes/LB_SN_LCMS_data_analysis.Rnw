@@ -1,0 +1,1651 @@
+%\VignettePackage{LewyBodies.SN.Proteomics.BottomUp.Pub}
+%\VignetteIndexEntry{LCMS Data Analysis}
+%\VignetteDepends{vp.misc, BiocStyle, Biobase, MSnbase, msmsTests, GOstats, ReactomePA, DOSE, graphite, KEGGREST, reshape2, ggplot2, org.Hs.eg.db}
+%\VignetteKeywords{Documentation}
+%\VignetteEngine{knitr::knitr}
+
+\documentclass[11pt]{article}
+\usepackage[authoryear,round]{natbib}
+\usepackage{booktabs}
+\usepackage{colortbl, xcolor}
+\usepackage{rotating}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{makecell}
+\usepackage[T1]{fontenc}
+\usepackage{tabularx}
+\usepackage{subfloat}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage[labelfont=bf]{caption}
+
+\captionsetup{labelfont=bf}
+
+\renewcommand{\rothead}[2][60]{\makebox[9mm][c]{\rotatebox{#1}{\makecell[c]{#2}}}}
+
+% handling figure captions
+\captionsetup{labelfont=bf}
+% \captionsetup{textfont={color=gray,it,bf}}
+\captionsetup{textfont={color=darkgray}}
+\captionsetup{labelformat=empty}
+% \renewcommand{\figurename}{Supplementary Figure}
+% \newcommand{\reff}[1]{\textbf{Supplementary Figure \ref{#1}}}
+\newcommand{\reff}[1]{}
+\definecolor{highlighter}{HTML}{FFF8E1}
+
+<<bioc_style, eval=TRUE, echo=FALSE, results="asis">>=
+BiocStyle::latex(use.unsrturl=FALSE)
+@
+
+<<knitr_settings, results='hide', echo=FALSE, message=FALSE, warning=FALSE>>=
+knitr::opts_chunk$set(comment='',
+                      fig.align='center',
+                      echo=FALSE,
+                      results="hide",
+                      message=FALSE,
+                      warning=FALSE)
+@
+
+<<init>>=
+
+do_print_tables <- TRUE # controls printing supplementary tables
+
+library(vp.misc)
+library(knitr)
+library(BiocStyle)
+library(ggplot2)
+library(ggbeeswarm)
+library(reshape2)
+library(dplyr)
+library(tidyr)
+library(org.Hs.eg.db)
+library(ReactomePA)
+library(DOSE)
+library(WGCNA)
+library(GOstats)
+library(igraph)
+library(gelnet)
+library(pcaMethods)
+library(lme4)
+library(qvalue)
+library(multcomp)
+library(xtable)
+library(parallel)
+library(doParallel)
+library(foreach)
+library(lubridate)
+library(bnlearn)
+library(grid)
+
+
+xtable_print <- function(x, col.lab.rot=FALSE, ...){
+    rws <- seq(1, (nrow(x)-1), by = 2)
+    col <- rep("\\rowcolor[gray]{0.95}", length(rws))
+    add.to.row = list(pos = as.list(rws), command = col)
+    include.colnames = TRUE
+    if(col.lab.rot){
+        add.to.row$pos <- c(0, add.to.row$pos)
+        cols <- paste0("\\rothead{",colnames(x),"}", collapse = " & ")
+        cols <- paste0("\\rothead{} & ", cols, "\\\\")
+        add.to.row$command <- c(cols, add.to.row$command)
+        include.colnames = FALSE
+    }
+    print(xtable(x),
+          booktabs = TRUE,
+          add.to.row = add.to.row,
+          include.colnames = include.colnames,
+          ...)
+}
+
+@
+
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+\bioctitle[Analysis report: Petyuk et al., 2020]{
+   {\Large Executable Analysis Document Supporting:}\\
+    \textbf{Proteomic Profiling of the Substantia Nigra 
+            to Identify Determinants of Lewy Body Pathology 
+            and Dopaminergic Neuronal Loss}\\
+   {\Large Part II: LC-MS/MS Data Analysis} \\
+   % {\Large Molecular Neurodegeneration (2020) 
+   %       \href{http://dx.doi.org/10.1038/ncb2881}{doi:10.1038/ncb2881}
+   % }\\
+}
+
+
+
+\RequirePackage{color}
+\definecolor{BiocBlue}{RGB}{24,129,194}
+\makeatletter
+\renewcommand{\maketitle}{
+   \renewcommand\Authfont{\Large\bfseries}
+   \renewcommand\Affilfont{\normalsize\mdseries\upshape}
+   \thispagestyle{empty}
+   {\huge\color{BiocBlue}\@title\unskip\strut\par}
+   \addvspace{-4ex}
+   {\@author\unskip\strut\par}
+   {\large\bfseries\@date\unskip\strut\par}
+}
+\makeatother
+
+
+\usepackage[noblocks]{authblk}
+\author[1]{Vladislav A. Petyuk}
+\author[2,3]{Lei Yu}
+\author[4]{Heather M. Brewer}
+\author[1]{Geremy Clair}
+\author[1]{Wei-Jun Qian}
+\author[5,6]{Joshua M. Shulman}
+\author[2,3]{David A. Bennett}
+%
+\affil[1]{Biological Sciences Division, Pacific Northwest National Laboratory, Richland, WA, USA}
+\affil[2]{Rush Alzheimer's Disease Center, Rush University Medical Center, Chicago, IL, USA}
+\affil[3]{Department of Neurological Sciences, Rush University Medical Center, Chicago, IL, USA}
+\affil[4]{Enviromental and Molecular Sciences Laboratory, Pacific Northwest National Laboratory, Richland, WA, USA}
+\affil[5]{Departments of Neurology, Molecular \& Human Genetics, and Neuroscience, Baylor College of Medicine, Houston, TX, USA}
+\affil[6]{Jan and Dan Duncan Neurological Research Institute, Texas Children's Hospital, Houston, TX, USA}
+
+\date{\today}
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+
+
+
+
+
+
+
+
+
+<<reading_proteomics_data_from_maxquant>>=
+#' replace this function with actual code to avoid dependency on 'vp.misc'
+m <- readMaxQuantProtGroups("./maxquant_output", quantType = 'LFQ intensity')
+
+# meta data
+clin <- read.delim("supplementary_table_1.txt",
+                   as.is=TRUE, check.names=FALSE)
+# adding sample prep metadata. Batches are true except 
+batch.assn <- read.delim("./extra/bottom_up_sample_batch_assn.txt",
+                         as.is=TRUE, check.names=F)
+colnames(batch.assn)[colnames(batch.assn) == 'SampleName'] <- 'sample.id'
+meta <- merge(clin, batch.assn)
+rownames(meta) <- meta$sample.id
+subject.type <- sub("\\d+(C.*)","\\1",rownames(meta))
+subject.type <- ifelse(subject.type == "Cs", "case",
+                       ifelse(subject.type == "Ct1", "control.1", "control.2"))
+meta$subject.type <- as.factor(subject.type)
+match.group <- sub("(\\d+)C.*","\\1",rownames(meta))
+meta$match.group <- as.factor(sprintf("%02d", as.numeric(match.group)))
+# NOTE, SOME INDEPENDENT (PHENOTYPE OR TECHNICAL) VARIABLES ARE FACTORS
+meta$PlateCol <- as.factor(meta$PlateCol)
+meta$PlateRow <- as.factor(meta$PlateRow)
+pData(m) <-cbind(pData(m), meta[sampleNames(m),])
+
+#' DMS data
+#' Basically we need only date when then acquisition was done &
+#' correspondingly run order.
+dms <- read.delim('./extra/lewy2_dms_data.txt',
+                  as.is=TRUE, check.names=FALSE)
+o <- order(parse_date_time(dms[["Acq. End"]], "%m%d%y %I%M %p"))
+dms <- dms[o,c("Dataset","Experiment","Acq. End")]
+dms <- subset(dms, Dataset %in% pData(m)$dataset.name)
+rownames(dms) <- sub("Lewy\\d?_", "", dms$Experiment)
+dms$Experiment <- NULL
+colnames(dms) <- c("Dataset","Acq.End")
+dms$run.order <- 1:nrow(dms)
+pData(m) <- cbind(pData(m), dms[sampleNames(m),])
+
+# Minor preprocessing
+# 1. log2-transform
+# 2. zero-center
+# 3. Remove proteins with low observation count
+exprs(m) <- log2(exprs(m))
+exprs(m) <- sweep(exprs(m), 1, rowMeans(exprs(m), na.rm=TRUE), '-')
+m <- m[rowSums(!is.na(exprs(m))) > 1,]
+
+# SAVING
+save(m, file="SN_proteome.RData", compress='xz')
+
+@
+
+
+
+<<preprocessing_of_proteomics_data, cache=TRUE>>=
+set.seed(1)
+
+load('SN_proteome.RData')
+m <- m[rowSums(!is.na(exprs(m))) > 25,] # > half -> 2963 (15% loss)
+m <- normalizeByGlob(m) # median polish normalization 
+save(m, file = "SN_proteome_50.RData", compress = 'xz')
+
+dSet <- cbind(pData(m)[,c('subject.type','PlateCol','match.group')], t(exprs(m)))
+# modeling the data. Plate column is a technical batch effect. 
+# Match is related to subject matching during the study design.
+cl <- makeCluster(detectCores() - 1)
+silence <- clusterEvalQ(cl, library(lme4))
+silence <- clusterExport(cl, "dSet")
+res <- parLapply(cl, featureNames(m), function(x){
+   fmla1 <- sprintf("`%s` ~ subject.type + (1|PlateCol) + (1|match.group)",x)
+   m1 <- lmer(as.formula(fmla1), data = dSet)
+})
+stopCluster(cl)
+
+# extracting the effects
+col.eff <- t(sapply(res, function(x){coef(x)$PlateCol[m$PlateCol,1]}))
+mch.eff <- t(sapply(res, function(x){coef(x)$match.group[m$match.group,1]}))
+grp.eff <- t(sapply(res, function(x) fixef(x)[m$subject.type]))
+
+#' use of "m0" is just a trick to make sure that
+#' the name of the saved object is always "m"
+
+m0 <- m
+exprs(m0) <- exprs(m0) - col.eff
+m <- m0
+m <- normalizeByGlob(m) # re-center
+save(m, file = "SN_proteome_no_batch_effect.RData", compress = 'xz')
+
+exprs(m0) <- exprs(m0) - mch.eff
+m <- m0
+m <- normalizeByGlob(m) # re-center
+save(m, file = "SN_proteome_no_bias.RData", compress = 'xz')
+
+exprs(m0) <- exprs(m0) - grp.eff
+m <- m0
+m <- normalizeByGlob(m) # re-center
+save(m, file = "SN_proteome_residuals.RData", compress = 'xz')
+
+@
+
+
+
+
+
+
+
+
+\section{Objective}
+The ultimate goal of the project is to explore proteome changes associated
+with the histopathological features of the Parkinson's disease:
+Lewy bodies and \textit{Substantia nigra} neuronall loss. This is a new
+perspective in analysis of Parkinson's disease etiology.  As opposed to
+using clinical diagnosis for study design we rely on
+molecular and cellular changes presumably preceeding the onset of Parkinson's
+disease.
+
+
+
+
+\section{PCA. Supplementary Figure 3}
+PCA is a common approach to identify structure within the data. For example, 
+it can help to identify and visualize the extend of the batch effects.
+Columns of the 96-well plate were identified as a source of technical bias.
+Thus it should be included into the follow-up statistical models.
+
+\begin{figure}[h!]
+\center
+\begin{minipage}{0.7\textwidth}
+<<pca, out.width='0.6\\textwidth', fig.align='center', cache=TRUE, fig.height=8, fig.width=7>>=
+# data("SN_proteome_50")
+load("SN_proteome_50.RData")
+m <- m[complete.cases(exprs(m)),]
+
+g <- guide_legend(direction = "horizontal",
+                  nrow=1,
+             title="plate column",
+             title.hjust = 0.5,
+             title.position = "top",
+             title.theme = element_text(angle=0,size=18),
+             label.position="bottom", 
+             label.hjust = 0.5, 
+             label.vjust = 0.5,
+             label.theme = element_text(angle=0,size=16),
+             keywidth = 1.8, keyheight = 1.8)
+
+plot_pca_v3(m, phenotype = 'PlateCol', show.ellispe = T) +
+    guides(color=g, fill=g) +
+    theme_bw(base_size = 20) +
+    theme(legend.position='bottom', legend.direction = "horizontal")
+    
+ggsave(filename = "Supplementary_Figure_3.png", width = 12, height = 12, scale = 0.7)
+@
+\caption{Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Figure 3}}}.
+PCA plot of relative protein abundances. Samples colored according to the
+column of the 96-well plate. The "batch" effect associated with the column
+position is substantial to warrant it as a covariate in the statistical model.}
+\label{fig:NLLBassoc}
+\end{minipage}
+\end{figure}
+
+Percentage of proteins that statistically significantly affected by plate column effect.
+<<batch_annova>>=
+# data("SN_proteome_50")
+load("SN_proteome_50.RData")
+res <- limma_gen(m, "~ PlateCol", "PlateCol")
+print(round(100*sum(res$adj.P.Val < 0.05, na.rm = T)/nrow(res)))
+# 0.3047587
+@
+
+
+\clearpage
+
+
+
+% \section{Individual proteins. Figure 4}
+% \begin{figure}[h!]
+% \center
+% \begin{minipage}{1\textwidth}
+% <<individual_proteins,  out.width='1\\textwidth', fig.width = 16, fig.height = 8>>=
+% 
+% # data("SN_proteome_no_bias")
+% load("SN_proteome_no_bias.RData")
+% dSet <- cbind(pData(m), t(exprs(m)))
+% 
+% set.seed(0)
+% trgts <- c('SNCA', 'TH', 'PARK7', 'VPS35', 'STK39', 'UCHL1', 'NPC1', 
+%            'MCCC1', 'HIP1R', 'TMEM163', 'DLG2', 'VPS13C', 'BCKDK', 
+%            'STX1B', 'DDRGK1', 'SCARB2', 'NUCKS1', 'GAK', 'APOE','SCARB2',
+%            'ALDH1A1')
+% 
+% dSet2 <- dSet[,c('subject.type', trgts)]
+% dSet2 <- gather(dSet2, key = protein, value = value, -subject.type)
+% 
+% g <- guide_legend(direction = "horizontal",
+%                   nrow=1,
+%                   title="subject type",
+%                   title.hjust = 0.5,
+%                   title.position = "top",
+%                   title.theme = element_text(angle=0,size=18),
+%                   label.position="bottom", 
+%                   label.hjust = 0.5, 
+%                   label.vjust = 0.5,
+%                   label.theme = element_text(angle=0,size=16),
+%                   keywidth = 6, keyheight = 2)
+% 
+% ggplot(dSet2, aes(x=subject.type, y=value, fill=subject.type)) +
+%     geom_hline(yintercept = 0, col='#9E9E9E', size=0.5, linetype='dashed') +
+%     geom_boxplot(aes(fill=subject.type), fill='white', outlier.shape = NA, size=0.3) +
+%     geom_boxplot(aes(fill=subject.type), alpha=0.5, , outlier.shape = NA, size=0.3) +
+%     geom_beeswarm(shape = 21, cex=4, size=2, stroke=0.5) +
+%         # google logo colors
+%         scale_fill_manual(values = c("case" = "#ea4335",
+%                                  "control.1" =  "#ffeb3b",
+%                                  "control.2" = "#34a853")) +
+%     # ylab('log2 relative abundance') +
+%     ylab(expression(protein~log[2]~relative~abundance)) +
+%     xlab('subject type') +
+%     # ylim(-1.5, +1.5) +
+%     theme_bw(base_size = 18) +
+%     theme(legend.position="none", 
+%           axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) +
+%     facet_wrap( ~ protein, scales = 'free_y', ncol = 7) +
+%     guides(fill=g) +
+%     theme(legend.position='bottom',
+%           axis.ticks.x=element_blank(), 
+%           axis.text.x=element_blank(), 
+%           axis.text.y=element_text(size = 10), 
+%           axis.title.x=element_blank(),
+%           legend.direction = "horizontal",
+%           legend.margin=unit(0.5,"cm"))
+% ggsave(filename = 'Figure_4.png', width = 16, height = 8, scale = 1)
+% @
+% \caption{Corresponds to
+% \textcolor{black}{\colorbox{highlighter}{\textbf{Figure 4}}} in the main text.
+% Relative abundances of the selected proteins across the case/control groups. The proteins were selected based on significance in previous genetic, GWAS or PD biomarker studies. The relative abundances are adjusted for matching group effect and other confounding factors.}
+% \label{fig:GObar}
+% \end{minipage}
+% \end{figure}
+
+
+
+\clearpage
+
+
+
+\section{Statistical significance analysis}
+\subsection{Mixed effects model. Figure 3}
+The protein abundances were modeled with linear mixed effects approach. 
+The terms to consider are the subject type as 
+fixed effect and matching group with 96-well plate column as random effects.
+The full model in Wilkinson-Rogers notation is:
+\begin{center}
+$protein \sim subject.type + (1|PlateCol) + (1|match.group)$
+\end{center}
+The null model excludes the fixed subject type coefficient. The results of ANOVA
+significance analysis are shown below.
+
+<<lmer_anova_test, cache=TRUE>>=
+
+# data("SN_proteome_50")
+load("SN_proteome_50.RData")
+
+dSet <- cbind(pData(m)[,c('subject.type','PlateCol','match.group')], t(exprs(m)))
+lmer_anova_pval <- function(gene_name){
+    dSet_i <- dSet[!is.na(dSet[,gene_name]),]
+    fmla1 <- sprintf("`%s` ~ subject.type + (1|PlateCol) + (1|match.group)",gene_name)
+    fmla0 <- sprintf("`%s` ~ 1 + (1|PlateCol) + (1|match.group)",gene_name)
+    m1 <- lmer(as.formula(fmla1), data = dSet_i, REML=F) 
+    m0 <- lmer(as.formula(fmla0), data = dSet_i, REML=F) 
+    pval <- anova(m1,m0)['m1','Pr(>Chisq)']
+    # pval <- KRmodcomp(m1,m0)$stats$p.value
+    # est <- coef(summary(m1))[2,'Estimate']
+    return(pval)
+}
+dim(m)
+
+cl <- makeCluster(detectCores() - 1)
+silence <- clusterEvalQ(cl, library(lme4))
+silence <- clusterExport(cl, c("lmer_anova_pval","dSet"))
+res <- parLapply(cl, featureNames(m), lmer_anova_pval)
+stopCluster(cl)
+
+@
+
+<<lmer_anova_test_table>>=
+anova_res <- data.frame(protein=featureNames(m), 
+                        `p-value`=unlist(res),
+                        stringsAsFactors = FALSE,
+                        check.names = FALSE)
+anova_res$`q-value` <- qvalue(anova_res$`p-value`)$qvalue
+anova_res$`adj. p-value` <- p.adjust(anova_res$`p-value`, method = 'BH')
+@
+
+
+
+
+
+
+\begin{figure}[h!]
+\center
+\begin{minipage}{1\textwidth}
+
+<<lmer_anova_test_results, out.width='0.5\\textwidth', fig.width = 6, fig.height = 5>>=
+ggplot(anova_res, aes(x=`p-value`)) +
+    stat_bin(breaks=seq(0,1, by=0.05)) +
+    xlab('p-value') +
+    theme_bw(base_size = 20)
+# ggsave(filename = "mixed_effect_anova.png", width = 12, height = 10, scale = 0.7)
+@
+
+\caption{Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 3}}} in the main text.
+P-value histogram of the mixed effects ANOVA test. Histogram bin width is 0.05. Higher then random number of proteins with low p-values (first bin) indicate on significance of the subject type effect.}
+\label{fig:PValueHistogram}
+\end{minipage}
+\end{figure}
+
+Full results of the ANOVA test available in the 
+\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 3}}}.
+
+
+
+
+
+
+
+
+
+
+<<lmer_anova_table, results='markup', cache=TRUE>>=
+# data("SN_proteome_no_bias")
+load("SN_proteome_no_bias.RData")
+
+x <- cbind(pData(m), t(exprs(m))) %>%
+    dplyr::select(one_of(c('subject.type',featureNames(m)))) %>%
+    gather('protein', 'log2.rel.abu',-subject.type) %>%
+    group_by(subject.type, protein) %>%
+    summarise(mean.log2.rel.abu = mean(log2.rel.abu, na.rm=TRUE)) %>%
+    spread(subject.type, mean.log2.rel.abu)
+x_protein_means <- gather(x, 'subject.type', 'value', -protein) %>%
+    group_by(protein) %>%
+    summarise(protein.mean = mean(value, na.rm=TRUE))
+x <- inner_join(x, x_protein_means, by='protein') %>%
+    mutate(case = case - protein.mean,
+           control.1 = control.1 - protein.mean,
+           control.2 = control.2 - protein.mean) %>%
+    dplyr::select(-protein.mean)
+anova_res <- inner_join(anova_res, x, by='protein') %>%
+    arrange(`p-value`)
+save(anova_res, file = "anova_res.RData")
+@
+
+
+<<anova_show_table, results='asis'>>=
+descript_text <- '{\\color{darkgray} Top 10 statistically significantly 
+varying proteins across the subject types}'
+bold <- function(x) paste('{\\bfseries ', x, '}')
+anova_res2 <- anova_res %>%
+  rename(case = "LB+NL+",
+         control.1 = "LB-NL+",
+         control.2 = "LB-NL-")
+print(
+    xtable(head(anova_res2, 10),
+           display = c('s','s','e','f','f','f','f','f'),
+           caption=descript_text),
+    sanitize.colnames.function=bold,
+    include.rownames = FALSE)
+
+write.table(anova_res2, file = 'supplementary_table_3.txt',
+            row.names=F, sep='\t', quote=F)
+@
+
+
+
+\subsection{Top 10 most significant proteins proteins. Figure 4}
+\begin{figure}[h!]
+\center
+\begin{minipage}{1\textwidth}
+<<individual_proteins,  out.width='1\\textwidth', fig.width = 16, fig.height = 8>>=
+
+# data("SN_proteome_no_bias")
+load("SN_proteome_no_bias.RData")
+dSet <- cbind(pData(m), t(exprs(m)))
+
+set.seed(0)
+trgts <- c('RGS6', 'EIF3E', 'CD59', 'ITGB8', 
+           'PHYHIP', 'PSMA5', 'PADI2', 'OXSM',
+           'CLIC4', 'CHDH')
+
+dSet2 <- dSet[,c('subject.type', trgts)]
+dSet2 <- gather(dSet2, key = protein, value = value, -subject.type)
+dSet2$protein <- ordered(dSet2$protein, levels=trgts)
+
+g <- guide_legend(direction = "horizontal",
+                  nrow=1,
+                  title="subject type",
+                  title.hjust = 0.5,
+                  title.position = "top",
+                  title.theme = element_text(angle=0,size=18),
+                  label.position="bottom", 
+                  label.hjust = 0.5, 
+                  label.vjust = 0.5,
+                  label.theme = element_text(angle=0,size=16),
+                  keywidth = 6, 
+                  keyheight = 2)
+
+ggplot(dSet2, aes(x=subject.type, y=value, fill=subject.type)) +
+    geom_hline(yintercept = 0, col='#9E9E9E', size=0.5, linetype='dashed') +
+    geom_boxplot(aes(fill=subject.type), fill='white', outlier.shape = NA, size=0.3) +
+    geom_boxplot(aes(fill=subject.type), alpha=0.75, , outlier.shape = NA, size=0.3) +
+    geom_beeswarm(shape = 21, cex=4, size=2, stroke=0.5) +
+        # google logo colors
+        scale_fill_manual(values = c("case" = "#ea4335",
+                                 "control.1" =  "#ffeb3b",
+                                 "control.2" = "#34a853"),
+                          labels=c("LB+NL+","LB-NL+","LB-NL-")) +
+    # ylab('log2 relative abundance') +
+    ylab(expression(protein~log[2]~relative~abundance)) +
+    xlab('subject type') +
+    # ylim(-1.5, +1.5) +
+    theme_bw(base_size = 18) +
+    theme(legend.position="none", 
+          axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) +
+    facet_wrap( ~ protein, scales = 'free_y', ncol = 4) +
+    guides(fill=g) +
+    theme(#legend.position='bottom',
+          legend.position = c(0.76, 0.19),
+          legend.background = element_rect(color = "grey80", size=0.5),
+          # legend.box.margin = margin(6, 6, 6, 6),
+          # legend.margin=unit(0.5,"cm")
+          legend.direction = "horizontal",
+          #
+          axis.ticks.x=element_blank(), 
+          axis.text.x=element_blank(), 
+          axis.text.y=element_text(size = 10), 
+          axis.title.x=element_blank())
+ggsave(filename = 'Figure_4.png', width = 13, height = 8, scale = 0.75)
+@
+\caption{Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 4}}} in the main text.
+Relative abundances of the top 10 most varying proteins across the groups. Proteins ordered according to significance in the ANOVA test. The relative abundances are adjusted for matching group effect and batch effect.}
+\label{fig:Top10IndProt}
+\end{minipage}
+\end{figure}
+
+
+
+
+
+
+
+\clearpage
+
+\subsection{Top differential proteins for six contrasts. Table 2}
+To obtain a detailed view on expression profiles acress the three subject types
+we performed contrast analysis. The differential abundance was tested across six
+contrasts including three pairwise comparisons and three comparisons of 
+individual subject type vs the other two. Adjustment for multiplicity of 
+comparisons was performed using single-step procedure based on z-statistic 
+implemented in the \textbf{\Rcode{multcomp}} package.
+
+<<contrasts_test, cache=TRUE>>=
+# data("SN_proteome_50")
+load("SN_proteome_50.RData")
+dSet <- cbind(pData(m)[,c('subject.type','PlateCol','match.group')], t(exprs(m)))
+
+cl <- makeCluster(detectCores()-1)
+silence <- clusterEvalQ(cl, library(lme4))
+silence <- clusterExport(cl, c("m","dSet"))
+res <- parLapply(cl,
+                 featureNames(m), function(x){
+    fmla1 <- sprintf("`%s` ~ subject.type + (1|PlateCol) + (1|match.group)",x)
+    m1 <- lmer(as.formula(fmla1), data = dSet) # core model fit
+    })
+stopCluster(cl)
+
+# ctrsts <- rbind("Cs_vs_Ct1"     = c(   1,   -1,    0), 
+#                 "Cs_vs_Ct2"     = c(   1,    0,   -1), 
+#                 "Ct1_vs_Ct2"    = c(   0,    1,   -1), 
+#                 "Cs_vs_Ct1Ct2"  = c(   1, -0.5, -0.5), 
+#                 "Ct1_vs_CsCt2"  = c(-0.5,    1, -0.5),
+#                 "Ct2_vs_CsCt1"  = c(-0.5, -0.5,    1))
+
+ctrsts <- rbind("LB+NL+ vs LB-NL+"     = c(   1,   -1,    0), 
+                "LB+NL+ vs LB-NL-"     = c(   1,    0,   -1), 
+                "LB-NL+ vs LB-NL-"    = c(   0,    1,   -1), 
+                "LB+NL+ vs (LB-NL+ and LB-NL-)"  = c(   1, -0.5, -0.5), 
+                "LB-NL+ vs (LB+NL+ and LB-NL-)"  = c(-0.5,    1, -0.5),
+                "LB-NL- vs (LB+NL+ and LB-NL+)"  = c(-0.5, -0.5,    1))
+
+cl <- makeCluster(detectCores()-1)
+silence <- clusterEvalQ(cl, {
+   library(multcomp);
+   library(lme4);
+   library(ggplot2)})
+silence <- clusterExport(cl, c("res","ctrsts"), envir = environment())
+pv_est <- parLapply(cl, res, function(x){
+    s <- summary(glht(x, linfct=mcp(subject.type=ctrsts))) # mult comp adj
+    fortify(s)[,c('estimate','p')]})
+stopCluster(cl)
+
+ests <- t(sapply(pv_est, `[`, , 'estimate'))
+pvals <- t(sapply(pv_est, `[`, , 'p'))
+
+colnames(ests) <- rownames(ctrsts)
+rownames(ests) <- featureNames(m)
+colnames(pvals) <- rownames(ctrsts)
+rownames(pvals) <- featureNames(m)
+ests.m <- melt(ests, varnames = c('protein', 'contrast'), value.name = 'estimate')
+pvals.m <- melt(pvals, varnames = c('protein', 'contrast'), value.name = 'pvalue')
+pv_est <- inner_join(ests.m, pvals.m)
+save(ests, pvals, file="contrasts_test.RData")
+@
+
+
+
+
+
+{\centering
+<<contrasts_table, results='asis'>>=
+
+top3 <- group_by(pv_est, contrast) %>%
+    top_n(n=3, -pvalue) %>%
+    arrange(contrast, pvalue) %>%
+    ungroup %>%
+    dplyr::select(contrast, protein, estimate, pvalue)
+split_factor <- top3$contrast
+top3$contrast <- ''
+top3$contrast[((0:5)*3 + 1)] <- gsub('_',' ',levels(split_factor))
+
+descript_text <- '{\\color{darkgray} Top 3 most significant proteins 
+for each contast. Corresponds to 
+\\textcolor{black}{\\colorbox{highlighter}{\\textbf{Table 2}}} in the main text.}'
+xTab <- xtable(top3, 
+                    display = c('s','s','s','f','e'),
+                    caption=descript_text)
+bold <- function(x) paste('{\\bfseries ', x, '}')
+print(xTab,
+                 booktabs = TRUE,
+                 sanitize.colnames.function=bold,
+                 # floating = FALSE,
+                 hline.after = c(-1,(0:6)*3),
+                 include.rownames = FALSE)
+@
+}
+
+
+\subsection{Full results of contrasts analysis. Supplementary Table 4}
+The entire test results for all proteins and all contrasts corresponding to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 4}}}
+are saved as a text file with the corresponding name.
+<<supplementary_table_3_contrasts>>=
+if(do_print_tables){
+    write.table(pv_est, 'supplementary_table_4_contrasts.txt',
+                sep='\t', row.names = FALSE, quote = FALSE)
+}
+@
+
+\clearpage
+
+
+% part 2
+
+
+
+
+<<reading_in_contrast_test>>=
+pv_est <- read.delim('supplementary_table_4_contrasts.txt')
+ests <- acast(pv_est[,c("protein","contrast","estimate")],
+                 "protein ~ contrast", value.var = "estimate")
+pvals <- acast(pv_est[,c("protein","contrast","pvalue")],
+                 "protein ~ contrast", value.var = "pvalue")
+@
+
+
+
+
+
+\clearpage
+
+
+\section{GO Term Enrichment}
+<<go_enrichment_setup>>=
+library(org.Hs.eg.db)
+library(clusterProfiler)
+# library(ReactomePA)
+# library(DOSE)
+
+# Converting gene symbols to Entrez IDs
+idx <- rownames(pvals) %in% mappedRkeys(org.Hs.egSYMBOL2EG)
+egs <- org.Hs.egSYMBOL2EG[rownames(pvals)[idx]] %>%
+    as.list %>% 
+    sapply('[', 1)
+pvals <- pvals[idx,]
+ests  <- ests[idx,]
+rownames(pvals) <- egs
+rownames(ests) <- egs
+
+go_enrichment_pval_df <- function(contrast.i, Ontology, Direction, ...){
+    est.i  <- ests[,contrast.i]
+    pval.i <- pvals[,contrast.i]
+    cmprfun <- ifelse(Direction == "up", `>`, `<`)
+    pval.i <- pval.i[cmprfun(est.i, 0)]
+    tgt <- names(which(pval.i < 0.05))
+    x <- enrichGO(tgt, universe = egs, ont = Ontology, 
+                  OrgDb = "org.Hs.eg.db",
+                  # pvalueCutoff = 1, qvalueCutoff = 1, readable = F,
+                  minGSSize = 1,  ...) 
+    x <- subset_by_size(x, maxSetSize = 500, minObsSize = 5)
+    res <- summary(x)
+    rownames(res) <- NULL
+    res$Contrast <- contrast.i
+    res$Ontology <- Ontology
+    res$Direction <- Direction
+    return(res)
+}
+col_to_keep <- c('ID','Description','GeneRatio',
+                 'BgRatio','pvalue','p.adjust')
+combs <- expand.grid(colnames(pvals), c("BP","MF","CC"), c("up","down"))
+@
+
+
+\subsection{Top terms. Table 3}
+Top GO terms for each of the contrasts and directions of change.
+<<top_go1, cache=TRUE>>=
+# cl <- makeCluster(max(1, detectCores()-1), outfile = '')
+cl <- makeCluster(max(1, round(detectCores()/4)), outfile = '') # RAM is the bottleneck
+registerDoParallel(cl)
+go1r <- foreach(i = icount(nrow(combs)),
+               .packages = c('clusterProfiler','GOstats','org.Hs.eg.db'),
+               .export = c('go_enrichment_pval_df',
+                           'subset_by_size',
+                           'combs','ests','pvals')) %dopar%
+        {
+            go_enrichment_pval_df(
+                as.character(combs[i,1]),
+                as.character(combs[i,2]),
+                as.character(combs[i,3]),
+                pvalueCutoff = 1,
+                qvalueCutoff = 1,
+                readable=TRUE)
+        }
+stopCluster(cl)
+@
+
+<<top_go2>>=
+go1r.df <- Reduce(rbind, lapply(go1r, head, 1))
+# go1r.df$Contrast <- ordered(go1r.df$Contrast, levels=levels(combs$Var1))
+
+go1r.df$Contrast <- ordered(go1r.df$Contrast, levels=c("LB+NL+ vs LB-NL+", "LB+NL+ vs LB-NL-", "LB-NL+ vs LB-NL-", 
+                                                       "LB+NL+ vs (LB-NL+ and LB-NL-)",
+                                                       "LB-NL+ vs (LB+NL+ and LB-NL-)",
+                                                       "LB-NL- vs (LB+NL+ and LB-NL+)"))
+go1r.df$Direction <- ordered(go1r.df$Direction, levels=c('up','down'))
+go1r.df$Ontology <- ordered(go1r.df$Ontology, levels=c('BP','CC','MF'))
+
+col_to_keep <- c('Contrast','Direction','Ontology','ID',
+                 'Description','GeneRatio',
+                 'BgRatio','pvalue','p.adjust')
+go1r.df <- go1r.df[,col_to_keep]
+go1r.df <- arrange(go1r.df, Contrast, Direction, Ontology)
+c1 <- abs(diff(as.numeric(as.factor(go1r.df$Contrast))))
+c2 <- abs(diff(as.numeric(as.factor(go1r.df$Direction))))
+c3 <- abs(diff(as.numeric(as.factor(go1r.df$Ontology))))
+l1 <- c(FALSE, c1 == 0)
+l2 <- c(FALSE, c1 + c2 == 0)
+l3 <- c(FALSE, c1 + c2 + c3 == 0)
+go1r.df$Contrast[l1] <- NA
+go1r.df$Direction[l2] <- NA
+go1r.df$Ontology[l3] <- NA
+write.table(go1r.df, file="table_2.txt", sep="\t", 
+            row.names=FALSE, quote=FALSE, na="")
+@
+
+<<top_go3, results='asis'>>=
+descript_text <- '{\\color{darkgray} Most significant GO terms 
+for each contrast and direction of change. Corresponds to 
+\\textcolor{black}{\\colorbox{highlighter}{\\textbf{Table 3}}} in the main text.}'
+# print(xtable(go1r.df, 
+#              align="lllllp{0.2\\textwidth}llll",
+#              display = c('s','s','s','s','s','s','s','s','e','e'),
+#              caption=descript_text), 
+#       size='scriptsize',
+#       hline.after = c(-1,(0:6)*6),
+#       booktabs=TRUE,
+#       include.rownames = FALSE)
+
+print(xtable(go1r.df[,colnames(go1r.df) != "pvalue"], 
+             align="lllllp{0.2\\textwidth}lll",
+             display = c('s','s','s','s','s','s','s','s','e'),
+             digits = 1,
+             caption=descript_text), 
+      size='scriptsize',
+      hline.after = c(-1,(0:6)*6),
+      booktabs=TRUE,
+      include.rownames = FALSE)
+
+
+
+
+@
+
+
+\subsection{Complete results. Supplementary Table 5}
+The signicantly enriched GO terms for up- and down-regulated proteins for
+each six contrasts corresponding to the 
+\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 5}}}
+are saved as text files.
+<<supplementary_table_5_go>>=
+
+Reduce(rbind, go1r) %>%
+    dplyr::filter(p.adjust < 0.05) %>%
+    dplyr::select(-qvalue) %>%
+    write.table("supplementary_table_5.txt", 
+                sep='\t', row.names = FALSE, quote = FALSE)
+@
+
+
+\subsection{Non-redundant set of GO terms}
+
+To infer a parsimonious set of GO terms we applied an iterative procedure. 
+For each iteration round we selected the most statistically significant 
+over-represented GO term regardless of the contrast and directionality of 
+change. Then proteins corresponding to this top GO term were removed from 
+further consideration. The iterations continued until no GO term is 
+statistically significantly enriched. Using this iterative ontology elimination
+procedure we selected only five GO terms.
+
+<<nonredundant, cache=TRUE>>=
+ests_original <- ests
+pvals_original <- pvals
+toppath <- list()
+# cl <- makeCluster(max(1, detectCores()-1), outfile = '')
+cl <- makeCluster(max(1, round(detectCores()/4)), outfile = '')
+registerDoParallel(cl)
+while(TRUE){
+    out <- foreach(i = icount(nrow(combs)),
+                   .packages = c('clusterProfiler','GOstats','org.Hs.eg.db'),
+                   # .packages = c('clusterProfiler'),
+                   .export = c('go_enrichment_pval_df',
+                               'subset_by_size',
+                               'combs','ests','pvals')) %dopar%
+            {
+                go_enrichment_pval_df(
+                    as.character(combs[i,1]),
+                    as.character(combs[i,2]),
+                    as.character(combs[i,3]),
+                    pvalueCutoff = 1,
+                    qvalueCutoff = 1)
+            }
+    out2 <- Reduce(rbind, out)
+    out2$padj2 <- p.adjust(out2$pvalue)
+    out2$geneID <- as.character(out2$geneID)
+    i <- which.min(out2$padj2)
+    if(out2[i,"padj2"] >= 0.05) break
+    # in case it proceeds
+    toppath <- c(toppath, list(out2[i,]))
+    genes <- strsplit(out2[i,"geneID"],'/')[[1]]
+    ests <- ests[!(rownames(ests) %in% genes),]
+    pvals <- pvals[!(rownames(pvals) %in% genes),]
+}
+stopCluster(cl)
+toppath.df <- Reduce(rbind, toppath)
+ests_original -> ests
+pvals_original -> pvals
+@
+
+<<nonredundant_report, results='asis'>>=
+toppath.df$p.adjusted <- toppath.df$padj2
+col_to_keep <- c('Contrast','Direction','Ontology',
+                 'ID','Description','GeneRatio','BgRatio',
+                 'pvalue','p.adjusted')
+descript_text <- '{\\color{darkgray} Non-redundant set of GO terms explaning the variance between the subject types.}'
+cols <- paste0("\\rothead{", col_to_keep, "}", collapse = " & ")
+cols <- paste0(cols, "\\\\")
+tab10 <- xtable(toppath.df[,col_to_keep], 
+             # align="lllllp{0.25\\textwidth}llll",
+             align="lp{0.175\\textwidth}lllp{0.25\\textwidth}llll",
+             display = c(rep('s',8),'e','e'),
+             digits = 1,
+             caption=descript_text)
+print(tab10, 
+      include.rownames = FALSE,
+      include.colnames = FALSE,
+      add.to.row = list(pos = as.list(0), command = cols), 
+      booktabs = TRUE, size='footnotesize')
+@
+
+
+
+\clearpage
+
+
+<<debug1>>=
+save(toppath.df, ests, pvals, file="toppath_df.RData")
+@
+
+
+\subsubsection{Barplot summary of non-redundant terms. Figure 5}
+
+\begin{figure}[h!]
+\center
+\begin{minipage}{0.8\textwidth}
+<<figure5_barplot, out.width='0.99\\textwidth', fig.align='center', fig.width = 12, fig.height = 8>>=
+
+#' whole pathway change estimation
+################################################################################
+# rel_ct2 <-
+#     t(sapply(strsplit(toppath.df$geneID, "/"), function(x)
+#         apply(ests[x,c("Cs_vs_Ct2","Ct1_vs_Ct2")], 2, mean)))
+# colnames(rel_ct2) <- c('case','control.1')
+
+rel_ct2 <-
+    t(sapply(strsplit(toppath.df$geneID, "/"), function(x)
+        apply(ests[x,c("LB+NL+ vs LB-NL-","LB-NL+ vs LB-NL-")], 2, mean)))
+colnames(rel_ct2) <- c('LB+','LB-')
+
+# rel_pvals <-
+#     t(sapply(strsplit(toppath.df$geneID, "/"), function(x)
+#         apply(pvals[x,c("Cs_vs_Ct1","Cs_vs_Ct2","Ct1_vs_Ct2")], 2, median)))
+# colnames(rel_pvals) <- paste("pval", colnames(rel_pvals), sep='_')
+# rel_pvals <- (rel_pvals < 0.05) * 1
+
+rel_pvals <-
+    t(sapply(strsplit(toppath.df$geneID, "/"), function(x)
+        apply(pvals[x,c("LB+NL+ vs LB-NL+","LB+NL+ vs LB-NL-","LB-NL+ vs LB-NL-")], 2, median)))
+colnames(rel_pvals) <- paste("pval", colnames(rel_pvals), sep='_')
+rel_pvals <- (rel_pvals < 0.05) * 1
+################################################################################
+
+toppath.df <- cbind(toppath.df, rel_ct2, rel_pvals)
+
+toppath.df$Description <- ordered(toppath.df$Description,
+                         levels=rev(
+                             c("poly(A) RNA binding",
+                               "basement membrane",
+                               "hydrogen peroxide metabolic process",
+                               "synapse",
+                               "Arp2/3 complex-mediated actin nucleation")))
+
+toppath.df <- toppath.df[order(toppath.df$Description),]
+
+N <- nrow(toppath.df)
+
+# x <- toppath.df[,c("Description","case","control.1","Count",
+#                    "pval_Cs_vs_Ct2","pval_Ct1_vs_Ct2")]
+# x <- melt(x, id.vars = c("Description","Count","pval_Cs_vs_Ct2","pval_Ct1_vs_Ct2"))
+
+x <- toppath.df[,c("Description","LB+","LB-","Count",
+                   "pval_LB+NL+ vs LB-NL-","pval_LB-NL+ vs LB-NL-")]
+x <- melt(x, id.vars = c("Description","Count","pval_LB+NL+ vs LB-NL-","pval_LB-NL+ vs LB-NL-"))
+
+ps <- (sqrt(x$Count)/30)[1:N]
+ps <- (x$Count/150)[1:N]
+x$pz <- c(rep(1:N),rep(1:N)) + c(ps, -ps)
+x$signif <- with(x, c(`pval_LB+NL+ vs LB-NL-`[1:N], `pval_LB-NL+ vs LB-NL-`[-(1:N)]))
+
+g <- guide_legend(direction = "horizontal",
+                  nrow=1,
+                  title = "NL+ subject type",
+                  title.hjust = 0.5,
+                  title.position = "top",
+                  title.theme = element_text(angle=0,size=20),
+                  label.position="bottom",
+                  label.hjust = 0.5,
+                  label.vjust = 0.5,
+                  label.theme = element_text(angle=0,size=18),
+                  keywidth = 6, 
+                  keyheight = 1.5)
+
+pthw_lblz <- with(toppath.df, paste(ID, Description, sep = '\n'))
+
+p <-
+ggplot(x, aes(x=pz, y=value, fill=variable, width=2*c(ps,ps))) +
+    guides(fill=g) +
+    geom_bar(stat="identity", color='#9E9E9E', alpha=0.75) +
+    scale_x_discrete(labels=pthw_lblz, limits=1:N, expand=c(0.05,0.05)) +
+    coord_flip() +
+    ylim(-0.5,+0.5) +
+    # ylab('median log2 fold change relatively to control.2') +
+    ylab(expression(median~log[2]~fold~change~relatively~to~LB-NL-~controls)) +
+    # ylab(paste0('median ',expression(log[2]),'fold change relatively to LB-NL- controls')) +
+    xlab('') +
+    # scale_fill_manual(values=c('case'='#EA4335','control.1'='#FFEB3B'),
+    #                   labels=c("LB+","LB-")) +
+    scale_fill_manual(values=c('LB+'='#EA4335','LB-'='#FFEB3B')) +
+    theme_bw(base_size = 20) +
+    theme(legend.position='bottom',
+          legend.direction = "horizontal",
+          legend.margin=unit(0.5,"cm"))
+p
+ggsave(filename = "Figure_5.png", width = 12, height = 8, scale = 1)
+@
+\caption{Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 5}}} in the main text.
+% Quantitative profile of non-redundant set of GO ontology terms
+% significantly enriched in proteins with differential abundance. The bar width
+% is proportional to the number of proteins mapped to a term. X axis correspond
+% to a median log2 fold change between case vs control.2 (red) or
+% case vs control.1 (yellow) across a particular GO term.
+Non-redundant GO terms. X axis correspond to a median log2 fold change of the corresponding proteins. Control group representing general population (LB-NL-) serves as a reference. The rectangle height (Y axis direction) is proportional to the number of proteins mapped to the term.
+}
+\label{fig:GObar}
+\end{minipage}
+\end{figure}
+
+
+
+
+\clearpage
+
+
+
+
+
+
+
+\subsubsection{Heatmaps corresponding to individual terms. Figure 6}
+<<toppath_heatmaps_setup>>=
+
+genes <- sapply(toppath.df[,'geneID'], function(x){
+    as.character(org.Hs.egSYMBOL[strsplit(x,'/')[[1]]])})
+names(genes) <- toppath.df[,'Description']
+save(genes, file = 'genes.RData')
+
+load("SN_proteome_no_bias.RData") # should be already normalized and ready for visualization
+pthw_lblz <- with(toppath.df, paste(ID, Description, sep = '\n'))
+m$match.group.num <- as.numeric(m$match.group)
+gene_set_heatmap <- function(i){
+    p <- 
+        image_msnset(m[genes[[i]],], facetBy = "subject.type",
+                 sOrderBy = 'match.group.num', valRange = 1) +
+        guides(fill=FALSE) + xlab('') + ylab('') +
+        ggtitle(sub("(.*)\n(.*)", "\\2 (\\1)", pthw_lblz[i])) +
+        theme(strip.text.x = element_text(size = 14),
+              axis.text.x = element_text(hjust = 1),
+              plot.title = element_text(hjust = 0.5)) +
+        # coord_fixed(ratio = 0.1) +
+        scale_x_discrete(labels=as.numeric(levels(m$match.group))) +
+        facet_grid(. ~ subject.type, scales = "free", space = "free",
+                   labeller = labeller(subject.type = c("case"="LB+NL+",
+                                                        "control.1"="LB-NL+",
+                                                        "control.2"="LB-NL-")))
+    
+    p
+  
+      # # https://stackoverflow.com/questions/53455092/r-ggplot2-change-colour-of-font-and-background-in-facet-strip
+      # g <- ggplot_gtable(ggplot_build(p))
+      # strip_both <- which(grepl('strip-', g$layout$name))
+      # fills <- c("#ea4335","#ffeb3b","#34a853")
+      # k <- 1
+      # for (i in strip_both) {
+      #   j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+      #   g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+      #   k <- k+1
+      # }
+      # g
+
+}
+@
+
+
+% \begin{figure}[h!]
+% \center
+% \begin{minipage}{0.9\textwidth}
+<<toppath_heatmaps_5, out.width='0.75\\textwidth', fig.align='center', fig.width = 9.6, fig.height = 7.90, dev='png'>>=
+gene_set_heatmap(5)
+ggsave(filename = "Figure_6A.png", width = 12, height = 9.875, scale = 0.8)
+@
+<<toppath_heatmaps_4, out.width='0.75\\textwidth', fig.align='center', fig.width = 9.6, fig.height = 2.56, dev='png'>>=
+gene_set_heatmap(4) # 2.88
+ggsave(filename = "Figure_6B.png", width = 12, height = 3.2, scale = 0.8)
+@
+<<toppath_heatmaps_3, out.width='0.75\\textwidth', fig.align='center', fig.width = 9.6, fig.height = 2.12, dev='png'>>=
+gene_set_heatmap(3) # 2.56
+ggsave(filename = "Figure_6C.png", width = 12, height = 2.65, scale = 0.8)
+@
+<<toppath_heatmaps_2, out.width='0.75\\textwidth', fig.align='center', fig.width = 9.6, fig.height = 8.4, dev='png'>>=
+gene_set_heatmap(2)
+ggsave(filename = "Figure_6D.png", width = 12, height = 10.5, scale = 0.8)
+@
+<<toppath_heatmaps_1, out.width='0.75\\textwidth', fig.align='center', fig.width = 9.6, fig.height = 3.36, dev='png'>>=
+gene_set_heatmap(1) + 
+    guides(fill=guide_colorbar(title = "log2 relative\nabundance", title.vjust = 1)) + 
+    xlab('matching group ID') +
+    theme(legend.position = "bottom",
+          legend.box = "horizontal",
+          legend.key.height = unit(0.3,'in'),
+          legend.key.width = unit(1,'in'))
+ggsave(filename = "Figure_6E.png", width = 12, height = 4.2, scale = 0.8)
+@
+% \caption{
+Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 6}}} in the main text.
+Relative abundances of the individual proteins mapping to the non-redundant 
+significant GO terms.
+% }
+% \label{fig:GOTermsHeatmaps}
+% \end{minipage}
+% \end{figure}
+
+
+
+\clearpage
+
+
+% part 3
+
+
+
+\section{Assessment of the cell type level changes}
+
+The data on cell-specific gene expression was downloaded from 
+\href{http://web.stanford.edu/group/barres_lab/brain_rnaseq.html}{Barres Lab}.
+Specifically, the excel file with processed data is available
+\href{http://web.stanford.edu/group/barres_lab/barreslab_rnaseq.xlsx}{here}.
+The corresponding text file is available in the package's "extdata" folder.
+The mouse genes were mapped to protein orthologues using ENSEMBL database.
+% Note, connection to Biomart is not reliable. Therefore, the
+% "ens_ref.RData" file will be downloaded to the package "extdata".
+% Moreover, the database may change with the next version.
+<<ensembl_mouse_to_human, cache=TRUE>>=
+library(biomaRt)
+
+# celltype_rnaseq <- read.delim(system.file('/extdata/barreslab_rnaseq.txt', 
+#                                           package = 'LewyBodies.SN.BottomUp'),
+#                               as.is=T, check.names = F)
+
+celltype_rnaseq <- read.delim("./extra/barreslab_rnaseq.txt",
+                              as.is=T, check.names = F)
+
+
+# ensembl <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#                    dataset = "mmusculus_gene_ensembl",
+#                    host = "www.ensembl.org")
+
+#            biomart                   version
+# 1  ensembl_mart_51                Ensembl 51
+# 4  ensembl_mart_50                Ensembl 50
+# 7  ensembl_mart_49 ENSEMBL GENES 49 (SANGER)
+# 11 ensembl_mart_48 ENSEMBL GENES 48 (SANGER)
+# 15 ensembl_mart_47 ENSEMBL GENES 47 (SANGER)
+# 22 ensembl_mart_46 ENSEMBL GENES 46 (SANGER)
+# 29 ensembl_mart_45 ENSEMBL GENES 45 (SANGER)
+# 35 ensembl_mart_44 ENSEMBL GENES 44 (SANGER)
+# 40 ensembl_mart_43 ENSEMBL GENES 43 (SANGER)
+
+# http://www.ensembl.org/info/website/archives/index.html
+# http://mar2016.archive.ensembl.org # the version I used
+# http://jul2016.archive.ensembl.org # next (current) version
+
+ensembl <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+                   dataset = "mmusculus_gene_ensembl",
+                   host = "mar2016.archive.ensembl.org")
+
+ens_ref1 <- getBM(attributes= c("ensembl_gene_id",
+                                "hsapiens_homolog_associated_gene_name"), 
+                  filters=c("wikigene_name"), 
+                  values=celltype_rnaseq[,1], 
+                  mart=ensembl)
+
+ens_ref2 <- getBM(attributes= c("ensembl_gene_id",
+                                "wikigene_name"),
+                  filters=c("wikigene_name"),
+                  values=celltype_rnaseq[,1],
+                  mart=ensembl)
+
+ens_ref <- merge(ens_ref1, ens_ref2)
+ens_ref <- subset(ens_ref, hsapiens_homolog_associated_gene_name != "")
+# save(ens_ref, file = 'ens_ref_mar2016.RData', compress = 'xz')
+@
+
+
+<<celltype_rnaseq>>=
+library(dplyr)
+library(Biobase)
+# data("SN_proteome_no_bias")
+load("SN_proteome_no_bias.RData")
+mc <- m[complete.cases(exprs(m)),]
+celltype_rnaseq %<>%
+    inner_join(ens_ref, by = c('Gene symbol' = 'wikigene_name')) %>%
+    dplyr::select(-`Gene symbol`, -`Description`, -`ensembl_gene_id`) %>%
+    dplyr::rename(gene = hsapiens_homolog_associated_gene_name) %>%
+    group_by(gene) %>%
+    summarise_each(funs(sum)) %>%
+    as.data.frame() %>%
+    {rownames(.) <- .$gene;.} %>%
+    dplyr::select(-gene) %>%
+    sweep(2, colSums(.)/mean(colSums(.)), '/') %>%
+    subset(rownames(.) %in% featureNames(mc)) %>%
+    dplyr::select(-`Oligodendrocyte Precursor Cell`, -`Newly Formed Oligodendrocyte`) %>%
+    dplyr::rename(Astrocyte = Astrocytes,
+           Oligodendrocyte = `Myelinating Oligodendrocytes`,
+           Endothelial = `Endothelial Cells`)
+
+# write.table(celltype_rnaseq, file = 'humanized_barreslab_rnaseq.txt', 
+#             sep='\t', quote=F, col.names = NA)
+
+# select only those proteins that are top 10% in any of the cell types
+top_prots <- lapply(colnames(celltype_rnaseq), function(v)
+    rownames(celltype_rnaseq)[celltype_rnaseq[,v] > quantile(celltype_rnaseq[,v], 0.90)])
+top_prots <- unique(unlist(top_prots))
+celltype_rnaseq <- celltype_rnaseq[top_prots,]
+
+marker_genes <- vector('list',ncol(celltype_rnaseq))
+names(marker_genes) <- colnames(celltype_rnaseq)
+
+get_cell_spec <- function(col_name){
+    s <- celltype_rnaseq[,col_name]/rowSums(celltype_rnaseq)
+    names(s[s > 0.8]) # at least 80% belongs to this cell type
+}
+
+marker_genes <- sapply(names(marker_genes), get_cell_spec, 
+                          simplify = FALSE, USE.NAMES = TRUE)
+save(marker_genes, file="marker_genes.RData")
+@
+
+
+
+
+
+\subsection{Significance analysis}
+
+Statistical test (Kruskal-Wallis) to check if any cell type changes in 
+amount across the subject types. 
+The p-values are in the legend to the 
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 7}}} in the main text. 
+Given the data, the endothelial cells are the most strongly associated 
+with the neuronal loss regardless of the Lewy bodies.
+
+<<cell_type_test2, results='asis'>>=
+ans <- sapply(marker_genes, function(v) apply(exprs(m[v,]), 2, median, na.rm=T))
+ans <- data.frame(ans, subject.type=m$subject.type, subject.id=sampleNames(m))
+save(ans, file = "ans.RData")
+ansm <- melt(ans, id.vars = c('subject.type','subject.id'))
+# alphabetic order of cell types
+ansm$variable <- ordered(ansm$variable, levels=sort(levels(ansm$variable)))
+
+aov_res <- ansm %>% 
+    group_by(variable) %>%
+    do(pv = kruskal.test(value ~ subject.type, data = .)) %>%
+    summarise("cell type" = variable, "p-value" = pv$p.value) %>%
+    mutate(`p-value` = sprintf('%.2g',`p-value`)) %>%
+    spread(`cell type`, `p-value`) %>%
+    as.data.frame() %>%
+    {rownames(.) <- "p-value";.}
+xtable(aov_res, align = rep('r',6))
+@
+
+\subsection{Barplot of cell type contributions. Figure 7}
+
+\begin{figure}[h!]
+\center
+\begin{minipage}{0.8\textwidth}
+<<cell_type_changes, out.width='1\\textwidth', fig.align='center', fig.height=8, fig.width=12>>=
+
+p_val_data <- data.frame(variable=ordered(names(aov_res),levels(ansm$variable)),
+                         pval=t(aov_res))
+
+g <- guide_legend(direction = "horizontal",
+                  nrow=1,
+                  title="subject type",
+                  title.hjust = 0.5,
+                  title.position = "top",
+                  title.theme = element_text(angle=0,size=18),
+                  label.position="bottom", 
+                  label.hjust = 0.5, 
+                  label.vjust = 0.5,
+                  label.theme = element_text(angle=0,size=16),
+                  keywidth = 6, keyheight = 2)
+
+ggplot(ansm, aes(variable, value, fill=subject.type)) +
+    geom_boxplot(outlier.size = NA, notch = F, alpha=0.8) +
+  geom_label(mapping = aes(x=variable, 
+                           y=-0.5, 
+                           label=p.value),
+             fill="white",
+             color="grey50",
+             fontface="bold",
+             size=5,
+             label.padding = unit(0.2, "lines"),
+             label.r = unit(0, "lines"),
+             data=as.data.frame(p_val_data)) +
+    guides(fill=g) +
+    scale_fill_manual(values=c('case'='#EA4335',
+                               'control.1'='#FFEB3B',
+                               'control.2'='#34A853'),
+                      labels=c("LB+NL+","LB-NL+","LB-NL-")) +
+    xlab('cell type') +
+    ylab('log2 of relative fold change') +
+    ylim(-0.5,+0.5) +
+    theme_bw(base_size = 20) +
+    theme(legend.position='bottom',
+          legend.direction = "horizontal",
+          legend.spacing = unit(0.5,"cm"))
+    
+
+ggsave(file='Figure_7.png', width=12, height=8, scale = 1)
+@
+\caption{Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 7}}} in the main text.
+Estimates of cell-type level changes based on the sets of marker proteins.
+Gross cell-level changes were estimated based on the median relative abundance
+value of the marker protein sets.}
+\label{fig:CellTypes}
+\end{minipage}
+\end{figure}
+
+
+
+\clearpage
+\subsection{Heatmap of protein markers of endothelial cells. Figure 8}
+
+\begin{figure}[h!]
+\center
+\begin{minipage}{1.0\textwidth}
+<<endothelial_heatmap, out.width='1\\textwidth', fig.align='center', fig.height=2.8, fig.width=9.6, dev='png', dpi=600>>=
+m$match.group.num <- as.numeric(m$match.group)
+image_msnset(m[marker_genes[['Endothelial']],], 
+             facetBy = 'subject.type',
+             sOrderBy = 'match.group.num', 
+             valRange = 1) +
+    ggtitle('endothelial cell markers') +
+    ylab('protein') +
+    xlab('matching group ID') +
+    theme(strip.text.x = element_text(size = 14),
+          axis.text.x = element_text(hjust = 1, vjust=0.5),
+          plot.title = element_text(hjust = 0.5)) +
+    guides(fill=FALSE) +
+    scale_x_discrete(labels=as.numeric(levels(m$match.group))) +
+    facet_grid(. ~ subject.type, scales = "free", space = "free",
+             labeller = labeller(subject.type = c("case"="LB+NL+",
+                                                  "control.1"="LB-NL+",
+                                                  "control.2"="LB-NL-")))
+ggsave(file='Figure_8.png', width=12, height=3.5, scale = 0.8)
+@
+\caption{Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 8}}} in the main text.
+Relative abundances of the endothelial marker proteins. 
+The colorkey of relative abundances is the same as on Figure 6.}
+\label{fig:EndothelialHeatmaps}
+\end{minipage}
+\end{figure}
+
+\clearpage
+
+
+
+
+
+\section{Primary factors affecting $\alpha$-synuclein abundance}
+
+\subsection{Statisical model of $\alpha$-synuclein abundance}
+
+Modeling $\alpha$-synuclein abundance. The terms to consider are the presense of
+Lewy bodies (term LB), dopaminergic neuronal loss (term pigmented\_NL) assessed by melanin
+deposits and overal neronal cell relative amount estimated using neuronal 
+protein markers (term neuron). The random effect terms included plate column and 
+matching group. The full model in Wilkinson-Rogers notation is:
+\begin{center}
+$SNCA \sim LB + pigmented\_NL + neuron + (1|PlateCol) + (1|match.group)$
+\end{center}
+
+<<snca_model, results='asis'>>=
+
+# I don't want corrected data for this analysis. The batch and match effects
+# should be accounted in the model.
+# data("SN_proteome_50")
+load("SN_proteome_50.RData")
+
+load("marker_genes.RData")
+load("anova_res.RData")
+
+dSet <- cbind(pData(m)[,c('nigral_LB_density',
+                          'pigmented_NL',
+                          'PlateCol',
+                          'match.group')], t(exprs(m)))
+
+neuron <- apply(exprs(m[marker_genes[['Neuron']],]), 2, median, na.rm=T)
+neuron <- neuron[sampleNames(m)]
+dSet$neuron <- neuron
+# LB presence/absense
+dSet$LB <- as.numeric(m$subject.type == 'case')
+
+# full model
+fmla1 <- "SNCA ~ LB + pigmented_NL + neuron + (1|PlateCol) + (1|match.group)"
+m1 <- lmer(as.formula(fmla1), data = dSet, REML=F) 
+# nested models
+pvals <- sapply(c('LB', 'pigmented_NL', 'neuron'), function(term){
+        fmla0 <- sub(sprintf('%s (\\+ )?', term), '', fmla1)
+        m0 <- lmer(as.formula(fmla0), data = dSet, REML=F) 
+        anova(m1,m0)['m1','Pr(>Chisq)']})
+ests <- coef(summary(m1))[names(pvals),'Estimate']
+snca_terms <- data.frame(`term description` = c('Lewy body presence', 
+                                  'DA neuronal loss', 
+                                  'relative amount of neuronal cells'), 
+                         `p-value` = pvals, 
+                         `effect size (log2)` = ests,
+                         stringsAsFactors = FALSE,
+                         check.names = FALSE)
+
+#                 pvals       ests
+# LB       1.672924e-02  0.2780007
+# pigmented_NL 2.723474e-02 -0.1751981
+# neuron   1.270315e-05  1.7707954
+
+# descript_text <- '{\\color{darkgray} Relation of $\\alpha$-synuclein abundance 
+# and neuropathological parameters. Corresponds to 
+# \\textcolor{black}{\\colorbox{highlighter}{\\textbf{Table 3}}} in the main text.}'
+descript_text <- '{\\color{darkgray} Relation of $\\alpha$-synuclein abundance 
+and neuropathological parameters.}'
+print(xtable(snca_terms, display = c('s','s','g','f'), caption = descript_text))
+@
+
+The results of the statistical modeling indicate that the LB presense 
+explain the SNCA abundance. However, given the data, the most strongest
+term correlating with SNCA is the amount of neuronal cells.
+
+
+
+
+\section{Causal Network Analysis}
+
+<<path_causal_network_inference, results='markup', cache=TRUE>>=
+# data("SN_proteome_50")
+load("SN_proteome_50.RData")
+load("ans.RData")
+load("genes.RData")
+# average cell type marker expression
+cell_df <- ans %>% dplyr::select(-c(subject.type,subject.id)) # as cell.df
+# marker_genes as cell.prot
+# average pathway marker expression
+path_df <- sapply(genes, function(v) apply(exprs(m[v,]), 2, median, na.rm=T))
+
+norm_snca <- exprs(m)['SNCA',] - cell_df$Neuron
+norm_pclo <- exprs(m)['PCLO',] - cell_df$Neuron
+cell_df <- cell_df[,c('Neuron','Endothelial')]
+d <- cbind(cell_df, path_df,
+           SNCA=norm_snca, 
+           PCLO=norm_pclo,
+           LB=m$nigral_LB_density, # as numeric?
+           NL=as.numeric(m$pigmented_NL))
+
+library(parallel)
+# set.seed(0) # this seed does not help in case of parallel execution
+cl <- makeCluster(7)
+res <-
+    boot.strength(d, cluster = cl, R = 10000, m = nrow(d),
+                  algorithm='rsmax2',
+                  algorithm.args = list(restrict='aracne',
+                                        maximize='tabu'))
+stopCluster(cl)
+# graphviz.plot(averaged.network(res, threshold = 0.5), shape='ellipse')
+res0 <- res # fix this hack
+@
+
+<<saving_network_for_cytoscape>>=
+# save(res, file='res.RData')
+res <- within(res, {fwd <- paste(from, '(pp)', to);
+                    rev <- paste(to, '(pp)', from)})
+edge_strength_threshold <- 0.5
+net2way <- subset(res, strength > edge_strength_threshold)
+sif2way <- with(net2way, data.frame(from, intrctn='pp', to, stringsAsFactors = F))
+write.table(sif2way, 'Figure_9_pathology_network.sif', 
+            sep='\t', quote=F, row.names = F, col.names = F)
+
+
+# edge 2way characteristics
+edgesign <- with(cor(d) %>% {diag(.) <- NA;.} %>% 
+                     sign %>% melt %>% filter(!is.na(value)), 
+                 data.frame(
+                     edgename = paste(Var1, '(pp)', Var2),
+                     sign = value,
+                     stringsAsFactors = F))
+edg2way <- with(net2way, data.frame(edgename=paste(from, '(pp)', to),
+                            strength,
+                            direction,
+                            score=strength*direction,
+                            stringsAsFactors = F))
+edg2way <- inner_join(edgesign, edg2way) %>% 
+    mutate(strength_signed = sign * strength)
+
+write.table(edg2way, 'Figure_9_pathology_network_edges_metadata.txt',
+            sep='\t', quote=F, row.names = F)
+
+renamer <- c('synapse', 'basement\nmembrane', 'DA\nneuronal\nloss', 'neuron', 'Arp2/3\ncomplex', 'ROS', 'poly(A) RNA\nbinding', 'PCLO', 'endothelium', 'Lewy bodies', 'SNCA')
+names(renamer) <- c('synapse', 'basement membrane', 'NL', 'Neuron', 'Arp2/3 complex-mediated actin nucleation', 'hydrogen peroxide metabolic process', 'poly(A) RNA binding', 'PCLO', 'Endothelial', 'LB', 'SNCA')
+nodenames <- data.frame(name = names(renamer),
+                        label = gsub('\n',' ',renamer),
+                        stringsAsFactors = FALSE)
+write.table(nodenames, 'Figure_9_pathology_network_nodes_metadata.txt',
+            sep='\t', quote=F, row.names = F)
+@
+
+
+
+\clearpage
+
+\subsection{Causal Network. Figure 9}
+\begin{figure}[h!]
+\center
+\begin{minipage}{0.95\textwidth}
+<<visualization_path_causal_network, out.width='1\\textwidth', fig.align='center', fig.width=8, fig.height=8>>=
+
+library(igraph)
+x2 <- mutate(edg2way,
+             from = sub('(.*)\\s\\(pp\\)\\s(.*)','\\1',edgename),
+             to   = sub('(.*)\\s\\(pp\\)\\s(.*)','\\2',edgename)) %>%
+    dplyr::rename(label = edgename) %>%
+    dplyr::select(from, to, label:to)
+caus_nn <- graph_from_data_frame(x2)
+
+E(caus_nn)$color <- sapply(x2$strength_signed, function(x){
+    xi <- ((abs(x) - edge_strength_threshold)/(1 - edge_strength_threshold))^2
+    if(x > 0){
+        rgb(1,1-xi,1-xi) # high -> red
+    }else{
+        rgb(1-xi,1-xi,1) # high -> blue
+    }
+})
+
+# direction is already on the scale from 0 to 1
+E(caus_nn)$width <- sapply(x2$direction, function(x){
+    xi <- ((x - min(x2$direction))/(max(x2$direction) - min(x2$direction)))^2
+    return(7.0*xi + 0.5) # from 0.5 to 5
+})
+
+# vertex renaming
+V(caus_nn)$name <- renamer[V(caus_nn)$name]
+
+avg_net <- averaged.network(res0, threshold = edge_strength_threshold) # hack with res0
+nodes <- names(avg_net$nodes)
+arcs <- avg_net$arcs
+graph_obj <- new("graphNEL", nodes = nodes, 
+                 edgeL = bnlearn:::arcs2elist(arcs, nodes),
+                 edgemode = "directed")
+graph_layout <- Rgraphviz::layoutGraph(graph_obj, layoutType = "dot")
+V(caus_nn)$x <- graph_layout@renderInfo@nodes$nodeX[names(renamer)]
+V(caus_nn)$y <- graph_layout@renderInfo@nodes$nodeY[names(renamer)]
+
+plot(caus_nn, edge.curved=TRUE, edge.arrow.size=1.5, edge.label='',
+     vertex.size = 20,
+     vertex.color='grey97', vertex.frame.color='grey95',
+     vertex.label.font=2, vertex.label.family="Helvetica", 
+     vertex.label.color='black',
+     # layout=layout_with_fr,
+     layout=cbind(V(caus_nn)$x, V(caus_nn)$y)
+     )
+
+# graphviz.plot(averaged.network(res0), shape = "circle")
+
+dev.print(png, 'Figure_9.png', width = 1200, height = 1200, 
+          bg = "white", res = 200)
+@
+\caption{Corresponds to \textcolor{black}{\colorbox{highlighter}{\textbf{Figure 9}}} in the main text.
+The representation of the causal model and associated uncertainties inferred by
+bootstrap analysis. Certainty in edge presence is denoted by opaqueness 
+(opaque - more likely). Edge color represents directionality of the effect 
+(red - positive, blue -  negative). Confidence in directionality is depicted by 
+the edge width. Given the data, the structural modeling does not suggest 
+$\alpha$-synuclein as the major driver of LB formation.}
+\label{fig:CausalPathNetwork}
+\end{minipage}
+\end{figure}
+
+
+
+
+
+\clearpage
+\section{Session information}
+All software and respective versions used in this document, as returned by sessionInfo() are detailed below.
+\small
+<<sessionInfo, results='asis'>>=
+toLatex(sessionInfo())
+@
+
+\end{document}
+
+
+
+
+
