@@ -1,9 +1,6 @@
-Reproducing study design and data analysis for the manuscript.
-This repo completely reproduces the analysis and contains data protected by DUA.
-Thus it must remain private.
+Reproducing study design and data analysis for the manuscript. Public repo.
 
-
-# to install
+# Protocol for reproducing vignettes
 
 ## docker
 ```r
@@ -24,3 +21,4 @@ devtools::install_github("vladpetyuk/LewyBodies.SN.Proteomics.BottomUp.Pub",
 ```r
 vignette(package="LewyBodies.SN.Proteomics.BottomUp.Pub")
 ```
+
