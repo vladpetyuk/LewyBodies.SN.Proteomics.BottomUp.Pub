@@ -45,3 +45,12 @@ lubridate
 bnlearn
 clusterProfiler
 biomaRt
+purrr
+readr
+pheatmap
+RColorBrewer
+scales
+tibble
+msmsEDA
+msmsTests
+dendsort
