@@ -410,7 +410,7 @@ p1$gtable$grobs[[1]]$gp <- gpar(lwd = 1.5, col="black")
 p1$gtable$grobs[[2]]$gp <- gpar(lwd = 1.5, col = "black")
 p1$gtable$grobs[[4]]$gp <- gpar(fontface = "bold", fontsize = 5)
 
-pdf(file="PTM_ph_01scale.pdf", width = 10, height = 10)
+pdf(file="Figure_5.pdf", width = 10, height = 10)
 grid.newpage()
 grid.draw(p1$gtable)
 dev.off()
