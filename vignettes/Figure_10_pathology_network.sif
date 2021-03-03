@@ -1,0 +1,18 @@
+Neuron	pp	synapse
+Endothelial	pp	basement membrane
+Endothelial	pp	NL
+Arp2/3 complex-mediated actin nucleation	pp	synapse
+synapse	pp	Neuron
+synapse	pp	Arp2/3 complex-mediated actin nucleation
+synapse	pp	hydrogen peroxide metabolic process
+synapse	pp	poly(A) RNA binding
+synapse	pp	PCLO
+hydrogen peroxide metabolic process	pp	synapse
+basement membrane	pp	Endothelial
+poly(A) RNA binding	pp	synapse
+poly(A) RNA binding	pp	LB
+SNCA	pp	PCLO
+PCLO	pp	synapse
+PCLO	pp	SNCA
+LB	pp	poly(A) RNA binding
+NL	pp	Endothelial

@@ -135,18 +135,20 @@ xtable_print <- function(x, col.lab.rot=FALSE, ...){
 \usepackage[noblocks]{authblk}
 \author[1]{Vladislav A. Petyuk}
 \author[2,3]{Lei Yu}
-\author[4]{Heather M. Brewer}
+\author[4]{Heather M. Olson}
+\author[5]{Fengchao Yu}
 \author[1]{Geremy Clair}
 \author[1]{Wei-Jun Qian}
-\author[5,6]{Joshua M. Shulman}
+\author[6,7]{Joshua M. Shulman}
 \author[2,3]{David A. Bennett}
 %
 \affil[1]{Biological Sciences Division, Pacific Northwest National Laboratory, Richland, WA, USA}
 \affil[2]{Rush Alzheimer's Disease Center, Rush University Medical Center, Chicago, IL, USA}
 \affil[3]{Department of Neurological Sciences, Rush University Medical Center, Chicago, IL, USA}
 \affil[4]{Enviromental and Molecular Sciences Laboratory, Pacific Northwest National Laboratory, Richland, WA, USA}
-\affil[5]{Departments of Neurology, Molecular \& Human Genetics, and Neuroscience, Baylor College of Medicine, Houston, TX, USA}
-\affil[6]{Jan and Dan Duncan Neurological Research Institute, Texas Children's Hospital, Houston, TX, USA}
+\affil[5]{Department of Pathology, University of Michigan, Ann Arbor, MI, USA}
+\affil[6]{Departments of Neurology, Molecular \& Human Genetics, and Neuroscience, Baylor College of Medicine, Houston, TX, USA}
+\affil[7]{Jan and Dan Duncan Neurological Research Institute, Texas Children's Hospital, Houston, TX, USA}
 
 \date{\today}
 
@@ -869,12 +871,12 @@ print(xtable(go1r.df[,colnames(go1r.df) != "pvalue"],
 @
 
 
-\subsection{Complete results. Supplementary Table 5}
+\subsection{Complete results. Supplementary Table 8}
 The signicantly enriched GO terms for up- and down-regulated proteins for
 each six contrasts corresponding to the 
-\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 5}}}
+\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 8}}}
 are saved as text files.
-<<supplementary_table_5_go>>=
+<<supplementary_table_8_go>>=
 
 Reduce(rbind, go1r) %>%
     dplyr::filter(p.adjust < 0.05) %>%
@@ -964,7 +966,7 @@ save(toppath.df, ests, pvals, file="toppath_df.RData")
 @
 
 
-\subsubsection{Barplot summary of non-redundant terms. Figure 5}
+\subsubsection{Barplot summary of non-redundant terms. Figure 6}
 
 \begin{figure}[h!]
 \center
@@ -1060,7 +1062,7 @@ p
 ggsave(filename = "Figure_5.png", width = 12, height = 8, scale = 1)
 @
 \caption{Corresponds to
-\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 5}}} in the main text.
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 6}}} in the main text.
 % Quantitative profile of non-redundant set of GO ontology terms
 % significantly enriched in proteins with differential abundance. The bar width
 % is proportional to the number of proteins mapped to a term. X axis correspond
@@ -1083,7 +1085,7 @@ Non-redundant GO terms. X axis correspond to a median log2 fold change of the co
 
 
 
-\subsubsection{Heatmaps corresponding to individual terms. Figure 6}
+\subsubsection{Heatmaps corresponding to individual terms. Figure 7}
 <<toppath_heatmaps_setup>>=
 
 genes <- sapply(toppath.df[,'geneID'], function(x){
@@ -1159,7 +1161,7 @@ ggsave(filename = "Figure_6E.png", width = 12, height = 4.2, scale = 0.8)
 @
 % \caption{
 Corresponds to
-\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 6}}} in the main text.
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 7}}} in the main text.
 Relative abundances of the individual proteins mapping to the non-redundant 
 significant GO terms.
 % }
@@ -1292,7 +1294,7 @@ save(marker_genes, file="marker_genes.RData")
 Statistical test (Kruskal-Wallis) to check if any cell type changes in 
 amount across the subject types. 
 The p-values are in the legend to the 
-\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 7}}} in the main text. 
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 8}}} in the main text. 
 Given the data, the endothelial cells are the most strongly associated 
 with the neuronal loss regardless of the Lewy bodies.
 
@@ -1315,7 +1317,7 @@ aov_res <- ansm %>%
 xtable(aov_res, align = rep('r',6))
 @
 
-\subsection{Barplot of cell type contributions. Figure 7}
+\subsection{Barplot of cell type contributions. Figure 8}
 
 \begin{figure}[h!]
 \center
@@ -1366,7 +1368,7 @@ ggplot(ansm, aes(variable, value, fill=subject.type)) +
 ggsave(file='Figure_7.png', width=12, height=8, scale = 1)
 @
 \caption{Corresponds to
-\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 7}}} in the main text.
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 8}}} in the main text.
 Estimates of cell-type level changes based on the sets of marker proteins.
 Gross cell-level changes were estimated based on the median relative abundance
 value of the marker protein sets.}
@@ -1377,7 +1379,7 @@ value of the marker protein sets.}
 
 
 \clearpage
-\subsection{Heatmap of protein markers of endothelial cells. Figure 8}
+\subsection{Heatmap of protein markers of endothelial cells. Figure 9}
 
 \begin{figure}[h!]
 \center
@@ -1403,9 +1405,9 @@ image_msnset(m[marker_genes[['Endothelial']],],
 ggsave(file='Figure_8.png', width=12, height=3.5, scale = 0.8)
 @
 \caption{Corresponds to
-\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 8}}} in the main text.
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 9}}} in the main text.
 Relative abundances of the endothelial marker proteins. 
-The colorkey of relative abundances is the same as on Figure 6.}
+The colorkey of relative abundances is the same as on Figure 7.}
 \label{fig:EndothelialHeatmaps}
 \end{minipage}
 \end{figure}
@@ -1564,7 +1566,7 @@ write.table(nodenames, 'Figure_9_pathology_network_nodes_metadata.txt',
 
 \clearpage
 
-\subsection{Causal Network. Figure 9}
+\subsection{Causal Network. Figure 10}
 \begin{figure}[h!]
 \center
 \begin{minipage}{0.95\textwidth}
@@ -1620,7 +1622,7 @@ plot(caus_nn, edge.curved=TRUE, edge.arrow.size=1.5, edge.label='',
 dev.print(png, 'Figure_9.png', width = 1200, height = 1200, 
           bg = "white", res = 200)
 @
-\caption{Corresponds to \textcolor{black}{\colorbox{highlighter}{\textbf{Figure 9}}} in the main text.
+\caption{Corresponds to \textcolor{black}{\colorbox{highlighter}{\textbf{Figure 10}}} in the main text.
 The representation of the causal model and associated uncertainties inferred by
 bootstrap analysis. Certainty in edge presence is denoted by opaqueness 
 (opaque - more likely). Edge color represents directionality of the effect 

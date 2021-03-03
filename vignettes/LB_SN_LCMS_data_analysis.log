@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2015/dev/Debian) (preloaded format=pdflatex 2018.10.9)  8 MAY 2020 00:21
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2015/dev/Debian) (preloaded format=pdflatex 2018.10.9)  25 FEB 2021 03:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -499,29 +499,29 @@ Package textcomp Info: Setting ptmj sub-encoding to TS1/4 on input line 340.
 (./LB_SN_LCMS_data_analysis.aux)
 \openout1 = `LB_SN_LCMS_data_analysis.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 147.
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 147.
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 147.
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 147.
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 147.
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 147.
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 147.
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 147.
-LaTeX Font Info:    Try loading font information for TS1+cmr on input line 147.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 149.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 149.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 149.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 149.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 149.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 149.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 149.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 149.
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 149.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
-LaTeX Font Info:    ... okay on input line 147.
-LaTeX Font Info:    Try loading font information for T1+cmss on input line 147.
+LaTeX Font Info:    ... okay on input line 149.
+LaTeX Font Info:    Try loading font information for T1+cmss on input line 149.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/t1cmss.fd
@@ -564,7 +564,7 @@ Package: ltcaption 2013/02/03 v1.3-62 longtable captions (AR)
 )
 Package caption Info: End \AtBeginDocument code.
 \AtBeginShipoutBox=\box33
-Package hyperref Info: Link coloring ON on input line 147.
+Package hyperref Info: Link coloring ON on input line 149.
 
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2012/10/27 v2.43 Cross-referencing by name of section
@@ -574,9 +574,9 @@ Package: gettitlestring 2010/12/03 v1.4 Cleanup title references (HO)
 )
 \c@section@level=\count125
 )
-LaTeX Info: Redefining \ref on input line 147.
-LaTeX Info: Redefining \pageref on input line 147.
-LaTeX Info: Redefining \nameref on input line 147.
+LaTeX Info: Redefining \ref on input line 149.
+LaTeX Info: Redefining \pageref on input line 149.
+LaTeX Info: Redefining \nameref on input line 149.
 
 (./LB_SN_LCMS_data_analysis.out) (./LB_SN_LCMS_data_analysis.out)
 \@outlinefile=\write3
@@ -618,15 +618,15 @@ LaTeX Info: Redefining \nameref on input line 147.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <14.4> on input line 148.
+(Font)              <14.4> on input line 150.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 148.
+(Font)              <7> on input line 150.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <10.95> on input line 148.
+(Font)              <10.95> on input line 150.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 148.
+(Font)              <8> on input line 150.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 148.
+(Font)              <6> on input line 150.
 (./LB_SN_LCMS_data_analysis.toc [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}])
@@ -635,73 +635,73 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 
 
 
-Package xcolor Warning: Incompatible color definition on input line 195.
+Package xcolor Warning: Incompatible color definition on input line 197.
 
-<figure/pca-1.pdf, id=129, 505.89pt x 578.16pt>
+<figure/pca-1.pdf, id=128, 505.89pt x 578.16pt>
 File: figure/pca-1.pdf Graphic file (type pdf)
  <use figure/pca-1.pdf>
-Package pdftex.def Info: figure/pca-1.pdf used on input line 197.
+Package pdftex.def Info: figure/pca-1.pdf used on input line 199.
 (pdftex.def)             Requested size: 210.20448pt x 240.23187pt.
  [2 <./figure/pca-1.pdf>]
 
-Package xcolor Warning: Incompatible color definition on input line 318.
+Package xcolor Warning: Incompatible color definition on input line 320.
 
 <figure/lmer_anova_test_results-1.pdf, id=144, 433.62pt x 361.35pt>
 File: figure/lmer_anova_test_results-1.pdf Graphic file (type pdf)
 
 <use figure/lmer_anova_test_results-1.pdf>
 Package pdftex.def Info: figure/lmer_anova_test_results-1.pdf used on input lin
-e 320.
+e 322.
 (pdftex.def)             Requested size: 250.24199pt x 208.53554pt.
  [3
 
 
  <./figure/lmer_anova_test_results-1.pdf>]
 
-Package xcolor Warning: Incompatible color definition on input line 382.
+Package xcolor Warning: Incompatible color definition on input line 384.
 
 <figure/individual_proteins-1.pdf, id=158, 1156.32pt x 578.16pt>
 File: figure/individual_proteins-1.pdf Graphic file (type pdf)
 
 <use figure/individual_proteins-1.pdf>
 Package pdftex.def Info: figure/individual_proteins-1.pdf used on input line 38
-4.
+6.
 (pdftex.def)             Requested size: 500.484pt x 250.23602pt.
  [4 <./figure/individual_proteins-1.pdf>]
-LaTeX Font Info:    Try loading font information for T1+cmtt on input line 412.
+LaTeX Font Info:    Try loading font information for T1+cmtt on input line 414.
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/t1cmtt.fd
 File: t1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 412.
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 414.
  [5
 
 ]
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 500.
+(Font)              <5> on input line 502.
 
-Underfull \hbox (badness 10000) in paragraph at lines 504--504
+Underfull \hbox (badness 10000) in paragraph at lines 506--506
 []|\T1/cmss/m/n/8 Arp2/3 complex-mediated
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 516--516
+Underfull \hbox (badness 10000) in paragraph at lines 518--518
 []|\T1/cmss/m/n/8 macromolecular com-plex
  []
 
 
-Underfull \hbox (badness 3724) in paragraph at lines 518--518
+Underfull \hbox (badness 3724) in paragraph at lines 520--520
 []|\T1/cmss/m/n/8 RNA splic-ing, via trans-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 535--535
+Underfull \hbox (badness 10000) in paragraph at lines 537--537
 []|\T1/cmss/m/n/8 Arp2/3 complex-mediated
  []
 
 
-Overfull \hbox (32.18463pt too wide) in paragraph at lines 500--550
+Overfull \hbox (32.18463pt too wide) in paragraph at lines 502--552
  [][] 
  []
 
@@ -710,76 +710,76 @@ Overfull \hbox (32.18463pt too wide) in paragraph at lines 500--550
 
 ]
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 580.
+(Font)              <9> on input line 582.
 
-Underfull \hbox (badness 10000) in paragraph at lines 587--587
+Underfull \hbox (badness 10000) in paragraph at lines 589--589
 []|\T1/cmss/m/n/9 hydrogen per-ox-ide metabolic
  []
 
 
-Overfull \hbox (40.61906pt too wide) in paragraph at lines 580--591
+Overfull \hbox (40.61906pt too wide) in paragraph at lines 582--593
  [][] 
  []
 
 [7]
 
-Package xcolor Warning: Incompatible color definition on input line 609.
+Package xcolor Warning: Incompatible color definition on input line 611.
 
 <figure/figure5_barplot-1.pdf, id=192, 867.24pt x 578.16pt>
 File: figure/figure5_barplot-1.pdf Graphic file (type pdf)
 
 <use figure/figure5_barplot-1.pdf>
-Package pdftex.def Info: figure/figure5_barplot-1.pdf used on input line 611.
+Package pdftex.def Info: figure/figure5_barplot-1.pdf used on input line 613.
 (pdftex.def)             Requested size: 396.38702pt x 264.263pt.
  [8
 
  <./figure/figure5_barplot-1.pdf>]
 
-Package xcolor Warning: Incompatible color definition on input line 650.
+Package xcolor Warning: Incompatible color definition on input line 652.
 
 <figure/toppath_heatmaps_5-1.png, id=207, 693.59125pt x 570.13pt>
 File: figure/toppath_heatmaps_5-1.png Graphic file (type png)
 
 <use figure/toppath_heatmaps_5-1.png>
-Package pdftex.def Info: figure/toppath_heatmaps_5-1.png used on input line 652
+Package pdftex.def Info: figure/toppath_heatmaps_5-1.png used on input line 654
 .
 (pdftex.def)             Requested size: 375.36299pt x 308.55287pt.
 
 
-Package xcolor Warning: Incompatible color definition on input line 660.
+Package xcolor Warning: Incompatible color definition on input line 662.
 
 <figure/toppath_heatmaps_4-1.png, id=208, 693.59125pt x 184.69pt>
 File: figure/toppath_heatmaps_4-1.png Graphic file (type png)
 
 <use figure/toppath_heatmaps_4-1.png>
-Package pdftex.def Info: figure/toppath_heatmaps_4-1.png used on input line 662
+Package pdftex.def Info: figure/toppath_heatmaps_4-1.png used on input line 664
 .
 (pdftex.def)             Requested size: 375.36299pt x 99.95374pt.
 
 
-Package xcolor Warning: Incompatible color definition on input line 670.
+Package xcolor Warning: Incompatible color definition on input line 672.
 
 <figure/toppath_heatmaps_3-1.png, id=209, 693.59125pt x 152.57pt>
 File: figure/toppath_heatmaps_3-1.png Graphic file (type png)
 
 <use figure/toppath_heatmaps_3-1.png>
-Package pdftex.def Info: figure/toppath_heatmaps_3-1.png used on input line 672
+Package pdftex.def Info: figure/toppath_heatmaps_3-1.png used on input line 674
 .
 (pdftex.def)             Requested size: 375.36299pt x 82.57048pt.
 
 
-Package xcolor Warning: Incompatible color definition on input line 680.
+Package xcolor Warning: Incompatible color definition on input line 682.
 
 <figure/toppath_heatmaps_2-1.png, id=210, 693.59125pt x 606.265pt>
 File: figure/toppath_heatmaps_2-1.png Graphic file (type png)
 
 <use figure/toppath_heatmaps_2-1.png>
-Package pdftex.def Info: figure/toppath_heatmaps_2-1.png used on input line 682
+Package pdftex.def Info: figure/toppath_heatmaps_2-1.png used on input line 684
 .
 (pdftex.def)             Requested size: 375.36299pt x 328.10904pt.
 
 
-Package xcolor Warning: Incompatible color definition on input line 690.
+Package xcolor Warning: Incompatible color definition on input line 692.
 
 <figure/toppath_heatmaps_1-1.png, id=211, 693.59125pt x 241.90375pt> [9
 
@@ -788,51 +788,37 @@ png (PNG copy)> <./figure/toppath_heatmaps_3-1.png (PNG copy)>]
 File: figure/toppath_heatmaps_1-1.png Graphic file (type png)
 
 <use figure/toppath_heatmaps_1-1.png>
-Package pdftex.def Info: figure/toppath_heatmaps_1-1.png used on input line 692
+Package pdftex.def Info: figure/toppath_heatmaps_1-1.png used on input line 694
 .
 (pdftex.def)             Requested size: 375.36299pt x 130.91768pt.
  [10 <./figure/toppath_heatmaps_2-1.png (PNG copy)> <./figure/toppath_heatmaps_
 1-1.png (PNG copy)>]
 
-Package xcolor Warning: Incompatible color definition on input line 767.
+Package xcolor Warning: Incompatible color definition on input line 769.
 
 <figure/cell_type_changes-1.pdf, id=222, 867.24pt x 578.16pt>
 File: figure/cell_type_changes-1.pdf Graphic file (type pdf)
 
 <use figure/cell_type_changes-1.pdf>
-Package pdftex.def Info: figure/cell_type_changes-1.pdf used on input line 769.
+Package pdftex.def Info: figure/cell_type_changes-1.pdf used on input line 771.
 
 (pdftex.def)             Requested size: 400.38872pt x 266.92725pt.
  [11
 
  <./figure/cell_type_changes-1.pdf>]
 
-Package xcolor Warning: Incompatible color definition on input line 794.
+Package xcolor Warning: Incompatible color definition on input line 796.
 
 <figure/endothelial_heatmap-1.png, id=238, 693.792pt x 202.356pt>
 File: figure/endothelial_heatmap-1.png Graphic file (type png)
 
 <use figure/endothelial_heatmap-1.png>
 Package pdftex.def Info: figure/endothelial_heatmap-1.png used on input line 79
-6.
+8.
 (pdftex.def)             Requested size: 500.484pt x 145.97409pt.
  [12
 
  <./figure/endothelial_heatmap-1.png (PNG copy)>]
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 817.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `\alpha' on input line 817.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 817.
-
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 819.
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
 (hyperref)                removing `math shift' on input line 819.
@@ -845,50 +831,64 @@ Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
 (hyperref)                removing `math shift' on input line 819.
 
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 821.
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 821.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `\alpha' on input line 821.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 821.
+
 [13
 
 ]
 
-Package xcolor Warning: Incompatible color definition on input line 870.
+Package xcolor Warning: Incompatible color definition on input line 872.
 
 <figure/visualization_path_causal_network-1.pdf, id=251, 578.16pt x 578.16pt>
 File: figure/visualization_path_causal_network-1.pdf Graphic file (type pdf)
 
 <use figure/visualization_path_causal_network-1.pdf>
 Package pdftex.def Info: figure/visualization_path_causal_network-1.pdf used on
- input line 872.
+ input line 874.
 (pdftex.def)             Requested size: 475.45825pt x 475.45285pt.
  [14
 
  <./figure/visualization_path_causal_network-1.pdf>]
-LaTeX Font Info:    Try loading font information for TS1+cmss on input line 899
+LaTeX Font Info:    Try loading font information for TS1+cmss on input line 901
 .
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmss.fd
 File: ts1cmss.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 938.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 940.
  [15
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 938.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 940.
 
 (./LB_SN_LCMS_data_analysis.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 938.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 938.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 940.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 940.
 Package rerunfilecheck Info: File `LB_SN_LCMS_data_analysis.out' has not change
 d.
-(rerunfilecheck)             Checksum: 3D021DC723CDB9CCD92559CFE2B194C7;1830.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 938.
+(rerunfilecheck)             Checksum: 763540BE6C92FE5F34032C4FFAE1083E;1831.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 940.
  ) 
 Here is how much of TeX's memory you used:
- 9671 strings out of 495020
- 144909 string characters out of 6181324
- 252141 words of memory out of 5000000
- 12665 multiletter control sequences out of 15000+600000
+ 9672 strings out of 495020
+ 144914 string characters out of 6181324
+ 252339 words of memory out of 5000000
+ 12666 multiletter control sequences out of 15000+600000
  20906 words of font info for 49 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 36i,21n,45p,701b,453s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,21n,45p,702b,453s stack positions out of 5000i,500n,10000p,200000b,80000s
  </home/rstudio/.texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1000.600pk> </home
 /rstudio/.texmf-var/fonts/pk/ljfour/jknappen/ec/tcss1000.600pk> </home/rstudio/
 .texmf-var/fonts/pk/ljfour/jknappen/ec/ecss0900.600pk> </home/rstudio/.texmf-va
@@ -905,9 +905,9 @@ fonts/pk/ljfour/jknappen/ec/ecss1440.600pk></usr/share/texlive/texmf-dist/fonts
 /public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
 c/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfo
 nts/cm/cmsy10.pfb>
-Output written on LB_SN_LCMS_data_analysis.pdf (15 pages, 600064 bytes).
+Output written on LB_SN_LCMS_data_analysis.pdf (15 pages, 600406 bytes).
 PDF statistics:
- 849 PDF objects out of 1000 (max. 8388607)
+ 850 PDF objects out of 1000 (max. 8388607)
  295 compressed objects within 3 object streams
  52 named destinations out of 1000 (max. 500000)
  237 words of extra memory for PDF output out of 10000 (max. 10000000)
