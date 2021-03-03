@@ -23,5 +23,5 @@ vignette(package="LewyBodies.SN.Proteomics.BottomUp.Pub")
 ```
 
 ## compiling Rnw files
-Prior to reproducing the vignette compilation as separate files (not as part of package installation), please set the weave engine to knitr.
+Alternatively you can download and package as a zip file, upload into the RStudio docker (provided above), go to the vignettes directory withing the package and compile them on individually. This was the computation can be reproduced step by step. Note, prior to compilation, please set the weave engine to knitr.
 ![weave_engine](https://user-images.githubusercontent.com/4207635/109757527-d136a280-7b9e-11eb-9092-ce898ec05422.png)
