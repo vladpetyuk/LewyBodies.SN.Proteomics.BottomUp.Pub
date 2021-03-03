@@ -1,0 +1,492 @@
+%\VignettePackage{LewyBodies.SN.Proteomics.BottomUp.Pub}
+%\VignetteIndexEntry{LCMS MSFragger Open Search Analysis}
+%\VignetteDepends{vp.misc, BiocStyle, Biobase, MSnbase, msmsTests, GOstats, ReactomePA, DOSE, graphite, KEGGREST, reshape2, ggplot2, org.Hs.eg.db}
+%\VignetteKeywords{Documentation}
+%\VignetteEngine{knitr::knitr}
+
+\documentclass[11pt]{article}
+\usepackage[authoryear,round]{natbib}
+\usepackage{booktabs}
+\usepackage{colortbl, xcolor}
+\usepackage{rotating}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{makecell}
+\usepackage[T1]{fontenc}
+\usepackage{tabularx}
+\usepackage{subfloat}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage[labelfont=bf]{caption}
+
+\captionsetup{labelfont=bf}
+
+\renewcommand{\rothead}[2][60]{\makebox[9mm][c]{\rotatebox{#1}{\makecell[c]{#2}}}}
+
+% handling figure captions
+\captionsetup{labelfont=bf}
+% \captionsetup{textfont={color=gray,it,bf}}
+\captionsetup{textfont={color=darkgray}}
+\captionsetup{labelformat=empty}
+% \renewcommand{\figurename}{Supplementary Figure}
+% \newcommand{\reff}[1]{\textbf{Supplementary Figure \ref{#1}}}
+\newcommand{\reff}[1]{}
+\definecolor{highlighter}{HTML}{FFF8E1}
+
+<<bioc_style, eval=TRUE, echo=FALSE, results="asis">>=
+BiocStyle::latex(use.unsrturl=FALSE)
+@
+
+<<knitr_settings, results='hide', echo=FALSE, message=FALSE, warning=FALSE>>=
+knitr::opts_chunk$set(comment='',
+                      fig.align='center',
+                      echo=FALSE,
+                      results="hide",
+                      message=FALSE,
+                      warning=FALSE)
+@
+
+<<init>>=
+
+do_print_tables <- TRUE # controls printing supplementary tables
+
+library(vp.misc)
+library(knitr)
+library(BiocStyle)
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+library(tidyr)
+library(qvalue)
+library(multcomp)
+library(purrr)
+library(readr)
+library(pheatmap)
+library(RColorBrewer)
+library(scales)
+library(tibble)
+library(msmsTests)
+library(dendsort)
+library(grid)
+
+
+@
+
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+\bioctitle[Analysis report: Petyuk et al., 2020]{
+   {\Large Executable Analysis Document Supporting:}\\
+    \textbf{Proteomic Profiling of the Substantia Nigra 
+            to Identify Determinants of Lewy Body Pathology 
+            and Dopaminergic Neuronal Loss}\\
+   {\Large Open Modification Search Analysis} \\
+   % {\Large Molecular Neurodegeneration (2020) 
+   %       \href{http://dx.doi.org/10.1038/ncb2881}{doi:10.1038/ncb2881}
+   % }\\
+}
+
+
+
+\RequirePackage{color}
+\definecolor{BiocBlue}{RGB}{24,129,194}
+\makeatletter
+\renewcommand{\maketitle}{
+   \renewcommand\Authfont{\Large\bfseries}
+   \renewcommand\Affilfont{\normalsize\mdseries\upshape}
+   \thispagestyle{empty}
+   {\huge\color{BiocBlue}\@title\unskip\strut\par}
+   \addvspace{-4ex}
+   {\@author\unskip\strut\par}
+   {\large\bfseries\@date\unskip\strut\par}
+}
+\makeatother
+
+
+\usepackage[noblocks]{authblk}
+\author[1]{Vladislav A. Petyuk}
+\author[2,3]{Lei Yu}
+\author[4]{Heather M. Olson}
+\author[5]{Fengchao Yu}
+\author[1]{Geremy Clair}
+\author[1]{Wei-Jun Qian}
+\author[6,7]{Joshua M. Shulman}
+\author[2,3]{David A. Bennett}
+%
+\affil[1]{Biological Sciences Division, Pacific Northwest National Laboratory, Richland, WA, USA}
+\affil[2]{Rush Alzheimer's Disease Center, Rush University Medical Center, Chicago, IL, USA}
+\affil[3]{Department of Neurological Sciences, Rush University Medical Center, Chicago, IL, USA}
+\affil[4]{Enviromental and Molecular Sciences Laboratory, Pacific Northwest National Laboratory, Richland, WA, USA}
+\affil[5]{Department of Pathology, University of Michigan, Ann Arbor, MI, USA}
+\affil[6]{Departments of Neurology, Molecular \& Human Genetics, and Neuroscience, Baylor College of Medicine, Houston, TX, USA}
+\affil[7]{Jan and Dan Duncan Neurological Research Institute, Texas Children's Hospital, Houston, TX, USA}
+
+\date{\today}
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+
+
+
+\section{Objective}
+The objective of this analysis is to discover peptide modifications, 
+including biologically-relevant PTMs, and test if they are associated
+with any of the study design groups: LB+NL+, LB-NL+ or controls LB-NL-.
+
+
+
+
+\section{Reading MSFragger output}
+Two types of files were read as MSFragger output: `psm.tsv` and `<dataset name>.tsv` 
+files from the folders correspoding to each dataset.
+<<reading_msfragger, eval=FALSE, echo=TRUE>>=
+library(tidyverse)
+
+samples <- list.dirs(".", full.names = FALSE) %>%
+   setdiff("")
+
+psm_files <- map(samples, ~paste0("./",.,"/psm.tsv")) %>%
+   map(~read_tsv(.x) %>% mutate(id = .x)) %>%
+   bind_rows()
+
+extra_files <- map(samples, 
+                   ~list.files(., pattern = "^Lewy.*tsv$", full.names = TRUE)) %>%
+   map(~read_tsv(.) %>% mutate(id = .x)) %>%
+   bind_rows()
+
+# add sample_name, scannum to psm_files
+psm_files <- psm_files %>%
+   mutate(parsed = map(Spectrum, ~strsplit(.x, split = "\\."))) %>%
+   mutate(dataset = map_chr(parsed, ~.x[[1]][1]),
+          scannum = map_chr(parsed, ~.x[[1]][2]),
+          scannum = as.numeric(scannum),
+          charge = map_chr(parsed, ~.x[[1]][4]),
+          charge = as.numeric(charge)) %>%
+   mutate(sample_name = sub("\\./(.*)/psm.tsv","\\1",id)) %>%
+   select(-c(parsed, Spectrum, `Spectrum File`, id)) %>%
+   mutate(calibrated_delta_mass = 
+            `Delta Mass` - `Calibrated Observed Mass` + `Calculated Peptide Mass`) %>%
+   mutate(calibrated_delta_mass = as.numeric(as.character(calibrated_delta_mass))) %>%
+   filter(!is.na(`Assigned Modifications`))
+
+extra_files <- extra_files %>%
+   mutate(sample_name = sub("^([^/]*)/.*","\\1",id)) 
+
+x <- inner_join(psm_files, extra_files)
+
+x <- x %>%
+   select(-c(id, protein, peptide, peptide_prev_aa, peptide_next_aa,
+             `Ion Mobility`, `Number of Enzymatic Termini`,
+             `Number of Missed Cleavages`, hyperscore, 
+             nextscore,  expectscore))
+
+save(x, 
+     file = "msfragger_output.RData", 
+     # version=2, 
+     compress = "gzip")
+@
+
+
+\section{Preprocessing}
+Essentially, during the preprocessing steps we removed peptides with no modification or with modification due to added iodoacetamide during
+the sample preparation procedure. Also, we added tentative annotation (linking to `global.modsummary.tsv`) based on the modification mass.
+\begin{itemize}
+  \item Identification with no `Assigned Modifications` were removed. Note, this allowed to pass promiscuous alkylation. It will be removed later.
+  \item Modification masses were linked to the tentative annotations from `global.modsummary.tsv` 
+  (\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 5}}}) file using mass tolerance 0.8 mDa.
+  \item Modifications corresponding to alkylation (57.0215 Da) were removed from `Assigned Modifications`
+  \item Peptides with no remained modifications were removed.
+  \item We also required a modified peptide to be present in at least three samples.
+\end{itemize}
+
+<<preprocessing, eval=TRUE, cache=TRUE>>=
+
+load("./msfragger_output/msfragger_output.RData")
+
+# linking with mod annotation
+modsummary <- read_tsv("./msfragger_output/global.modsummary.tsv")
+
+masses_report <- unique(x$calibrated_delta_mass)[!is.na(unique(x$calibrated_delta_mass))]
+masses_summary <- modsummary$`Theoretical Mass Shift`
+
+a <- expand.grid(masses_report, masses_summary, KEEP.OUT.ATTRS = FALSE) %>%
+   dplyr::rename(masses_report = Var1, masses_summary = Var2) %>%
+   mutate(d = abs(masses_report - masses_summary)) %>%
+   mutate(masses_report = as.factor(masses_report)) %>%
+   group_by(masses_report) %>%
+   filter(d == min(d)) %>%
+   distinct(.keep_all = TRUE)
+
+# check redundancy
+stopifnot(all(!duplicated(a$masses_report)))
+# check that number match (redundant with the previous check)
+stopifnot(length(masses_report) == nrow(a))
+# checking mass matching tolerance
+stopifnot(max(a$d) < 8e-4)
+
+
+b <- inner_join(modsummary, a, by=c("Theoretical Mass Shift" = "masses_summary")) %>%
+   dplyr::select(-d) %>%
+   dplyr::rename(calibrated_delta_mass = masses_report) %>%
+   mutate(calibrated_delta_mass = as.numeric(as.character(calibrated_delta_mass)))
+
+x2 <- left_join(x, b, by = "calibrated_delta_mass")
+x3 <- filter(x2, `Theoretical Mass Shift` != 0)
+
+# removing alkylations from reported mods	
+# e.g. 13C(57.0215)
+x3 <- x3 %>%
+   mutate(`Assigned Modifications 2` = gsub("\\d+C\\(57\\.0215\\)","",`Assigned Modifications`),
+          `Assigned Modifications 2` = gsub(" ","",`Assigned Modifications 2`),
+          `Assigned Modifications 2` = gsub(",","",`Assigned Modifications 2`))
+# remove those mods that are completely gone after removing alkylation
+x3 <- x3 %>%
+   filter(`Assigned Modifications 2` != "")
+# remove promiscuous alkylation
+x3 <- x3 %>%
+   filter(`Theoretical Mass Shift` != 57.021464) %>%
+   filter(`Theoretical Mass Shift` != 56.026215) %>%
+   filter(`Theoretical Mass Shift` != 58.005479) %>%
+   filter(`Theoretical Mass Shift` != 58.041865) %>%
+   filter(`Theoretical Mass Shift` != 59.045045)
+
+x3_check <- x3 %>%
+   dplyr::select(sample_name, scannum, charge,
+          Peptide, `Modified Peptide`, `Delta Mass`, massdiff,
+          calibrated_delta_mass, `Assigned Modifications`, `Assigned Modifications 2`,
+          `Theoretical Mass Shift`)
+
+x3_check2 <- x3 %>%
+   mutate(mass = sub("\\d+C\\(57\\.0215\\)","",`Assigned Modifications 2`))
+
+# clean-up
+x4 <- x3 %>%
+   dplyr::select(sample_name, 
+          Peptide, `Modified Peptide`, 
+          `Assigned Modifications 2`,
+          `Theoretical Mass Shift`)
+
+# for quantification
+x_quant <- x3 %>%
+   group_by(sample_name, Gene, Peptide, `Theoretical Mass Shift`) %>%
+   tally() %>%
+   spread(sample_name, n, fill = 0)
+
+x_feature <- x3 %>%
+   distinct(Peptide, `Theoretical Mass Shift`, Modification, Gene,
+            `Protein ID`, `Protein Description`, `Is Unique`)
+
+
+
+@
+
+
+\section{Creating MSnSet object for testing}
+<<create_msnset, eval=TRUE, cache=TRUE>>=
+m_pheno <- x3 %>%
+   distinct(sample_name) %>%
+   mutate(match_id = sub("(\\d+)(C[st]\\d?)","\\1",sample_name)) %>%
+   mutate(group_id = sub("(\\d+)(C[st]\\d?)","\\2",sample_name)) %>%
+   as.data.frame() %>%
+   {rownames(.) <- .$sample_name;.}
+
+m_quant <- x_quant %>%
+   mutate(feature_name = paste(Gene, Peptide, `Theoretical Mass Shift`, sep="_")) %>%
+   as.data.frame() %>%
+   {rownames(.) <- .$feature_name;.} %>%
+   dplyr::select(-c(Peptide, `Theoretical Mass Shift`, feature_name, Gene))
+
+m_feature <- x3 %>%
+   distinct(Peptide, `Theoretical Mass Shift`, Modification, Gene,
+            `Protein ID`, `Protein Description`, `Is Unique`) %>%
+   mutate(feature_name = paste(Gene, Peptide, `Theoretical Mass Shift`, sep="_")) %>%
+   as.data.frame() %>%
+   {rownames(.) <- .$feature_name;.}
+   
+m <- MSnSet(exprs = as.matrix(m_quant), 
+            fData = m_feature[rownames(m_quant),], 
+            pData = m_pheno[colnames(m_quant),])
+
+m2 <- m[rowSums(exprs(m) > 0) > 2,] # at least 3 samples required for the test
+@
+
+Total number of remained peptides \Sexpr{nrow(m2)}.
+<<msnset, results='markup'>>=
+show(m2)
+@
+
+
+
+
+
+\section{Test of the differential abundance}
+Test for differential abundance is based on quasi-likelihood Poisson model.
+<<msmstest, eval=TRUE, cache=TRUE, echo=TRUE>>=
+alt.f <- "y ~ group_id + 1"
+null.f <- "y ~ 1"
+div <- colSums(exprs(m2)) # normalization factor
+res <- msms.glm.qlll(m2, alt.f, null.f, div=div)
+res$p.val.adj <- p.adjust(res$p.value, "BH")
+@
+
+<<msmstest_hist, out.width='0.7\\textwidth', fig.align='center', fig.width=6, fig.height=6>>=
+hist(res$p.value, breaks = 200, col="black")
+@
+
+<<msmstest_post>>=
+out <- cbind(fData(m2), res, exprs(m2))
+write_csv(out, "supporting_table_6.csv")
+@
+
+Spectral counts and results of the statistical test are saved as 
+\textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 6}}}.
+
+<<significant_peptides>>=
+sig_res <- res %>%
+   rownames_to_column("feature") %>%
+   as_tibble() %>%
+   arrange(p.value) %>%
+   filter(p.val.adj < 0.05)
+@
+
+
+\section{Cluster represenation of the significant modified peptides}
+Clustering of \Sexpr{nrow(sig_res)} peptides that passed adjusted p-value < 0.05 threshold.
+
+
+\begin{figure}[h!]
+\center
+\begin{minipage}{1\textwidth}
+
+<<heatmap, eval=TRUE, out.width='1\\textwidth', fig.align='center', fig.width=9, fig.height=9>>=
+
+selected.data <- exprs(m[sig_res$feature,])
+selected.data <- sweep(selected.data, 1, apply(selected.data, 1, max), '/')
+
+# Draw heatmaps
+callback <- function(hc, ...){dendsort(hc, isReverse = TRUE)}
+
+c_row <- hclust(dist(selected.data, method="pearson"), method="ward.D")
+c_row <- dendsort(c_row, isReverse = TRUE, type="min")
+c_col <- hclust(dist(t(selected.data), method="pearson"), method="ward.D")
+c_col <- dendsort(c_col, isReverse = TRUE)
+
+dend <- reorder(as.dendrogram(c_row), wts = 1:177, agglo.FUN = "min")
+c_row <- as.hclust(dend)
+
+p1 <- pheatmap(selected.data,
+               # clustering_callback = callback,
+               cluster_rows = c_row,
+               cluster_cols = c_col,
+               # color = colorRampPalette(c("snow","steelblue"))(10),
+               # color = colorRampPalette(c("snow","midnightblue"))(10),
+               # color = colorRampPalette(c("snow","darkblue"))(10),
+               # color = colorRampPalette(c("snow","blue4"))(10),
+               color = colorRampPalette(c("snow","royalblue4"))(10),
+               annotation_col = pData(m2)[,"group_id",drop=F],
+               annotation_colors = list(group_id =c(Cs="#EA4335BF",Ct1="#FFEB3BBF",Ct2="#34A853BF")),
+               clustering_distance_rows = "correlation",
+               clustering_distance_cols = "correlation",
+               clustering_method = "ward.D",
+               legend = FALSE,
+               annotation_legend = FALSE,
+               annotation_names_col = FALSE,
+               angle_col = 90,
+               fontsize_row = 3,
+               fontsize_col = 5,
+               border_color = NA,
+               treeheight_row = 30,
+               treeheight_col = 30,
+               cellwidth = 3*1.62, cellheight = 3)
+
+p1$gtable$grobs[[1]]$gp <- gpar(lwd = 1.5, col="black")
+p1$gtable$grobs[[2]]$gp <- gpar(lwd = 1.5, col = "black")
+p1$gtable$grobs[[4]]$gp <- gpar(fontface = "bold", fontsize = 5)
+
+pdf(file="PTM_ph_01scale.pdf", width = 10, height = 10)
+grid.newpage()
+grid.draw(p1$gtable)
+dev.off()
+@
+
+\caption{Corresponds to
+\textcolor{black}{\colorbox{highlighter}{\textbf{Figure 5}}} in the main text.
+Table with clusters is saved as \textcolor{black}{\colorbox{highlighter}{\textbf{Supplementary Table 7}}}.}
+\label{fig:Heatmap}
+\end{minipage}
+\end{figure}
+
+
+
+
+
+
+<<saving_cluster, eval=TRUE>>=
+modsummary <- mutate(modsummary, 
+         `Theoretical Mass Shift` = as.character(`Theoretical Mass Shift`))
+
+#
+x <- cut(as.dendrogram(c_row), h = 4)
+
+# Cs
+ptm_markers_1 <- data.frame(ptm_markers = labels(x$lower[[2]])) %>%
+   mutate(Gene = sub("([^_]*)_([^_]*)_([^_]*)","\\1",ptm_markers),
+          Pepide = sub("([^_]*)_([^_]*)_([^_]*)","\\2",ptm_markers),
+          `Theoretical Mass Shift` = sub("([^_]*)_([^_]*)_([^_]*)","\\3",ptm_markers)) %>%
+   left_join(modsummary) %>%
+   dplyr::select(-`data (PSMs/million)`) %>%
+   dplyr::select(-ptm_markers) %>%
+   mutate(Cluster = "LB+NL+")
+
+
+# Ct2
+ptm_markers_2 <- data.frame(ptm_markers = labels(x$lower[[1]])) %>%
+   mutate(Gene = sub("([^_]*)_([^_]*)_([^_]*)","\\1",ptm_markers),
+          Pepide = sub("([^_]*)_([^_]*)_([^_]*)","\\2",ptm_markers),
+          `Theoretical Mass Shift` = sub("([^_]*)_([^_]*)_([^_]*)","\\3",ptm_markers)) %>%
+   left_join(modsummary) %>%
+   dplyr::select(-`data (PSMs/million)`) %>%
+   dplyr::select(-ptm_markers) %>%
+   mutate(Cluster = "LB-NL-")
+
+# Ct1
+ptm_markers_3 <- data.frame(ptm_markers = labels(x$lower[[3]])) %>%
+   mutate(Gene = sub("([^_]*)_([^_]*)_([^_]*)","\\1",ptm_markers),
+          Pepide = sub("([^_]*)_([^_]*)_([^_]*)","\\2",ptm_markers),
+          `Theoretical Mass Shift` = sub("([^_]*)_([^_]*)_([^_]*)","\\3",ptm_markers)) %>%
+   left_join(modsummary) %>%
+   dplyr::select(-`data (PSMs/million)`) %>%
+   dplyr::select(-ptm_markers) %>%
+   mutate(Cluster = "LB-NL+")
+
+# ptm_markers_1$Cluster <- "Cs"
+# ptm_markers_2$Cluster <- "Ct2"
+# ptm_markers_3$Cluster <- "Ct1"
+
+ptm_markers_all <- bind_rows(ptm_markers_1, ptm_markers_2, ptm_markers_3)
+write_csv(ptm_markers_all, "supplementary_table_7.csv")
+
+@
+
+
+\clearpage
+\section{Session information}
+All software and respective versions used in this document, as returned by sessionInfo() are detailed below.
+\small
+<<sessionInfo, results='asis'>>=
+toLatex(sessionInfo())
+@
+
+\end{document}
+
+
+
+
+
